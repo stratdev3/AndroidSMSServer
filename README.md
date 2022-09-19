@@ -1,5 +1,5 @@
 # SMS Gateway
-This app turns Android device into SMS gateway which allows sending SMS through your Android device using `HTTP` requests.
+This app turns Android device into SMS gateway which allows sending SMS through Android device using `HTTP` requests over local Wi-Fi network.
 
 ![demo](https://user-images.githubusercontent.com/35717992/146224046-6c0d296b-dd10-4b0d-8897-56c7d460b418.gif)
 
@@ -39,4 +39,4 @@ So, Android SMS server app (non default sms app) has no way to notify http clien
 
 
 # Download APK
-Download APK from [release section](https://github.com/umer0586/AndroidSMSServer/releases) *(require Android 5.0)*
+Download latest APK from [release section](https://github.com/umer0586/AndroidSMSServer/releases) *(requires Android 5.0)*.
