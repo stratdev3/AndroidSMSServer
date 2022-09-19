@@ -35,7 +35,7 @@
             app:key="@string/pref_key_secure_connection"
             app:title="Use secure connection"
             app:icon="@drawable/ic_baseline_lock_24"
-            app:summary="Communication will be encrypted\n (TSL/SSL)"
+            app:summary="Communication will be encrypted (TSL/SSL). App uses self signed certificate. Ignore certificate check at client side"
 
             />
 

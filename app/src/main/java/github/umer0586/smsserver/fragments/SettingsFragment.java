@@ -158,36 +158,6 @@ public class SettingsFragment extends PreferenceFragmentCompat {
 
                 boolean newState = (boolean)newValue;
 
-                if(newState == true)
-                {
-
-                    final String message = "This app uses self signed certificate\n"+
-                                            "You have to ignore certificate check at client side " +
-                                            "or Add certificate to client trust store\n\n" +
-                                            "Download certificate from\n\n" +
-                                            "https://github.com/umer0586/AndroidSMSServer";
-
-                    new AlertDialog.Builder(getContext())
-                            .setTitle("Security")
-                            .setMessage(message)
-                            .setCancelable(false)
-                            .setPositiveButton("I Understand", (dialog, id) -> {
-                                dialog.cancel();
-                            })
-                            .setNeutralButton("Open Link",(dialog,id)->{
-                                try {
-                                    Uri webpage = Uri.parse("https://github.com/umer0586/AndroidSMSServer");
-                                    Intent myIntent = new Intent(Intent.ACTION_VIEW, webpage);
-                                    startActivity(myIntent);
-                                } catch (Exception e) {
-                                     Snackbar.make(requireView(),"No app found that can open web page",Snackbar.LENGTH_SHORT).show();
-                                    e.printStackTrace();
-                                }
-                            })
-                            .create()
-                            .show();
-                }
-
                 sharedPreferences.edit()
                         .putBoolean(getString(R.string.pref_key_secure_connection),newState)
                         .commit();
