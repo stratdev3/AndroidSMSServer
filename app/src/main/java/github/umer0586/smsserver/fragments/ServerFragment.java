@@ -96,21 +96,13 @@ public class ServerFragment extends Fragment implements SMSServer.onStartedListe
     private void startServer()
     {
 
-        if(!rxPermissions.isGranted(Manifest.permission.SEND_SMS))
-        {
-            Snackbar snackbar = Snackbar.make(getView().findViewById(R.id.relative_layout),
-                    "Allow SMS permission from settings",10_000);
-            snackbar.show();
-            return;
-        }
-
 
         String hostIp = IpUtil.getWifiIpAddress(getContext());
         int portNo = sharedPreferences.getInt(getString(R.string.pref_key_port_no),8080);
 
         if( hostIp == null )
         {
-            Snackbar.make(getView(),"No Network",Snackbar.LENGTH_SHORT).show();
+            Snackbar.make(getView(),"Unable to obtain IP Address",Snackbar.LENGTH_SHORT).show();
             return;
         }
 

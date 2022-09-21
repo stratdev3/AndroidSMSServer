@@ -2,8 +2,11 @@ package github.umer0586.smsserver;
 
 import static github.umer0586.smsserver.util.JsonUtil.toJSON;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -217,7 +220,8 @@ public class SMSServer extends NanoHTTPD {
             );
         }
 
-        if( isPasswordEnable() )
+        // don't check for password option when security option is disabled
+        if( isPasswordEnable() && isSecure)
         {
 
             if(password == null)
@@ -247,6 +251,19 @@ public class SMSServer extends NanoHTTPD {
 
         }
 
+        if(!hasPermissionToSendSMS())
+        {
+            responseBody.clear();
+            responseBody.put("error","Permission is required to send SMS");
+            return newFixedLengthResponse(
+                    Response.Status.FORBIDDEN,
+                    "application/json",
+                    toJSON(responseBody)
+            );
+
+        }
+
+        // send sms when everything is OKAY !
         //blocking call
         final HashMap<String,Object> resultMap = smsSender.sendSMS(phone,message);
         final String status = (String) resultMap.get("status");
@@ -274,6 +291,17 @@ public class SMSServer extends NanoHTTPD {
                 toJSON(resultMap)
         );
 
+    }
+
+    private boolean hasPermissionToSendSMS()
+    {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+        {
+            return this.context.checkSelfPermission(Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED;
+        }
+
+        //prior to android marshmallow dangerous permission are prompt at install time
+        return true;
     }
 
     private boolean isPasswordEnable()
