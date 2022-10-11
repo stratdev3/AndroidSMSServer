@@ -1,8 +1,7 @@
 # SMS Gateway
 This app turns Android device into SMS gateway which allows sending SMS through Android device using `HTTP` requests over local Wi-Fi network.
 
-![demo](https://user-images.githubusercontent.com/35717992/146224046-6c0d296b-dd10-4b0d-8897-56c7d460b418.gif)
-
+![demo](https://user-images.githubusercontent.com/35717992/195159994-c2906ede-8c43-405c-8c0b-a0a91ee77b18.gif)
 
 
 # Usage
