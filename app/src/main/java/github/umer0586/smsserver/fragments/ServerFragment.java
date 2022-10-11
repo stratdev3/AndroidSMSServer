@@ -1,9 +1,10 @@
 package github.umer0586.smsserver.fragments;
 
-import android.Manifest;
-import android.content.SharedPreferences;
+import android.content.Intent;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.text.Html;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,22 +15,25 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatImageView;
 import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.github.ybq.android.spinkit.SpinKitView;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.snackbar.Snackbar;
-import com.tbruyelle.rxpermissions3.RxPermissions;
 
-import java.io.IOException;
-
+import java.net.BindException;
+import java.net.UnknownHostException;
 
 import github.umer0586.smsserver.R;
-import github.umer0586.smsserver.SMSServer;
-import github.umer0586.smsserver.util.IpUtil;
+import github.umer0586.smsserver.broadcastreceiver.ServerCallbackProvider;
+import github.umer0586.smsserver.services.SMSService;
 
+public class ServerFragment extends Fragment implements ServerCallbackProvider.ServerEventsListener{
 
-public class ServerFragment extends Fragment implements SMSServer.onStartedListener , SMSServer.onStoppedListener{
+    private static final String TAG =  ServerFragment.class.getSimpleName();
+
+    private ServerCallbackProvider serverCallbackProvider;
 
     // Button at center to start/stop server
     private MaterialButton startButton;
@@ -46,11 +50,6 @@ public class ServerFragment extends Fragment implements SMSServer.onStartedListe
     //Ripple animation behind startButton
     private SpinKitView pulseAnimation;
 
-
-    private SMSServer smsServer;
-    private SharedPreferences sharedPreferences;
-    private RxPermissions rxPermissions;
-
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState)
@@ -58,10 +57,13 @@ public class ServerFragment extends Fragment implements SMSServer.onStartedListe
         return inflater.inflate(R.layout.fragment_server, container, false);
     }
 
+
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState)
     {
         super.onViewCreated(view, savedInstanceState);
+
+        Log.d(TAG, "onViewCreated() called with: view = [" + view + "], savedInstanceState = [" + savedInstanceState + "]");
 
         startButton = view.findViewById(R.id.start_button);
         serverAddress = view.findViewById(R.id.server_address);
@@ -69,7 +71,10 @@ public class ServerFragment extends Fragment implements SMSServer.onStartedListe
         lockIcon = view.findViewById(R.id.lock_icon);
         cardView = view.findViewById(R.id.card_view);
 
-        rxPermissions = new RxPermissions(this);
+        serverCallbackProvider = new ServerCallbackProvider(getContext());
+        serverCallbackProvider.setServerEventsListener(this);
+        serverCallbackProvider.registerEvents();
+        serverCallbackProvider.checkIfServerIsRunning();
 
         hidePulseAnimation();
         hideServerAddress();
@@ -82,88 +87,74 @@ public class ServerFragment extends Fragment implements SMSServer.onStartedListe
                 stopServer();
         });
 
-        sharedPreferences = getContext().getSharedPreferences(getString(R.string.shared_pref_file),getContext().MODE_PRIVATE);
+
 
     }
 
-    @Override
-    public void onDestroy()
+    private void stopServer()
     {
-        super.onDestroy();
-        stopServer();
+
+        Intent intent = new Intent(getContext(),SMSService.class);
+        intent.setAction(SMSService.ACTION_STOP_SERVER);
+
+        ContextCompat.startForegroundService(getContext(),intent);
+
     }
 
     private void startServer()
     {
+        Log.d(TAG, "startServer() called");
 
 
-        String hostIp = IpUtil.getWifiIpAddress(getContext());
-        int portNo = sharedPreferences.getInt(getString(R.string.pref_key_port_no),8080);
+        WifiManager wifiManager = (WifiManager) getContext().getApplicationContext().getSystemService(getContext().WIFI_SERVICE);
 
-        if( hostIp == null )
+        if(!wifiManager.isWifiEnabled())
         {
-            Snackbar.make(getView(),"Unable to obtain IP Address",Snackbar.LENGTH_SHORT).show();
+            showMessage("Please enable Wi-Fi");
             return;
         }
 
-        smsServer = new SMSServer(getContext(),hostIp,portNo);
-        smsServer.setOnStartedListener(this);
-        smsServer.setOnStoppedListener(this);
 
-        boolean isSecureConnectionEnable = sharedPreferences.getBoolean(getString(R.string.pref_key_secure_connection),false);
-        // If user has enabled "Use secure connection" option
-        if(isSecureConnectionEnable)
-            smsServer.makeSecure();
+        Intent intent = new Intent(getContext(),SMSService.class);
 
+        ContextCompat.startForegroundService(getContext(),intent);
 
-        boolean isPasswordEnable = sharedPreferences.getBoolean(getString(R.string.pref_key_password_switch),false);
-        //If user has enabled the password option
-        if(isPasswordEnable)
-        {
-            String password = sharedPreferences.getString(getString(R.string.pref_key_password),null);
-            smsServer.enablePassword();
-            smsServer.setPassword(password);
-        }
-
-
-        try
-        {
-           smsServer.start();
-
-        } catch (IOException e)
-        {
-            hideServerAddress();
-            Snackbar.make(getView(),"Failed to start",Snackbar.LENGTH_SHORT).show();
-            e.printStackTrace();
-        }
     }
 
 
-    private void showServerAddress(final String address)
+    @Override
+    public void onPause()
     {
-        if(smsServer != null)
+        super.onPause();
+        Log.d(TAG, "onPause() called");
+        serverCallbackProvider.unregisterEvents();
+    }
+
+    @Override
+    public void onResume()
+    {
+        super.onResume();
+        Log.d(TAG, "onResume() called");
+        serverCallbackProvider.registerEvents();
+        serverCallbackProvider.checkIfServerIsRunning();
+    }
+
+
+    private void showServerAddress(final String address, boolean secure)
+    {
+
+        cardView.setVisibility(View.VISIBLE);
+        serverAddress.setVisibility(View.VISIBLE);
+
+        if (secure)
         {
-            cardView.setVisibility(View.VISIBLE);
-
-            serverAddress.setVisibility(View.VISIBLE);
-
-
-            if(smsServer.isSecure())
-            {
-                lockIcon.setVisibility(View.VISIBLE);
-                serverAddress.setText(Html.fromHtml("<font color=\"#5c6bc0\">https://</font>" + address));
-            }
-            else
-            {
-                lockIcon.setVisibility(View.GONE);
-                serverAddress.setText("http://" + address);
-            }
-
-
-
+            lockIcon.setVisibility(View.VISIBLE);
+            serverAddress.setText(Html.fromHtml("<font color=\"#5c6bc0\">https://</font>" + address));
+        } else
+        {
+            lockIcon.setVisibility(View.GONE);
+            serverAddress.setText("http://" + address);
         }
-
-
     }
 
     private void showPulseAnimation()
@@ -183,51 +174,71 @@ public class ServerFragment extends Fragment implements SMSServer.onStartedListe
         lockIcon.setVisibility(View.GONE);
     }
 
-    private void stopServer()
-    {
-        if(smsServer != null)
-            smsServer.stop();
-    }
 
-    // A callback from server thread when server is started
     @Override
-    public void onStarted(final String host, final int port)
+    public void onDestroyView()
     {
-        getActivity().runOnUiThread(()->{
-            showServerAddress(host + ":" + port);
-            showPulseAnimation();
-            startButton.setTag("started");
-            startButton.setText("STOP");
-
-            if (getView() != null)
-                Snackbar.make(getView(),"SMS Server started",Snackbar.LENGTH_SHORT).show();
-            else
-                Toast.makeText(getContext(),"SMS Server started",Toast.LENGTH_SHORT).show();
-
-        });
-
-
-
+        super.onDestroyView();
+        Log.d(TAG, "onDestroyView() called");
+        serverCallbackProvider.unregisterEvents();
     }
 
-    // A callback from server thread when server is stopped
     @Override
-    public void onStopped()
+    public void onServerStarted(String IP, int port, boolean isSecure)
     {
-        getActivity().runOnUiThread(()->{
-            hideServerAddress();
-            hidePulseAnimation();
-            startButton.setTag("stopped");
-            startButton.setText("START");
+        Log.d(TAG, "onServerStarted() called with: IP = [" + IP + "], port = [" + port + "], isSecure = [" + isSecure + "]");
+        showServerAddress(IP + ":" + port,isSecure);
+        showPulseAnimation();
+        startButton.setTag("started");
+        startButton.setText("STOP");
 
-            if(getView() != null)
-                Snackbar.make(getView(),"SMS Server stopped",Snackbar.LENGTH_SHORT).show();
-            else
-                Toast.makeText(getContext(),"SMS Server stopped",Toast.LENGTH_SHORT).show();
-        });
+        showMessage("SMS server started");
+
+    }
+
+    @Override
+    public void onServerStopped()
+    {
+        hideServerAddress();
+        hidePulseAnimation();
+        startButton.setTag("stopped");
+        startButton.setText("START");
+
+        showMessage("SMS server stopped");
+    }
+
+    @Override
+    public void onError(Throwable throwable)
+    {
+        Log.d(TAG, "onError() called with: throwable = [" + throwable + "]");
+
+        if(throwable instanceof BindException)
+            showMessage("Address already in use");
+        else if(throwable instanceof UnknownHostException )
+            showMessage("Unable to obtain IP address");
+        else
+            showMessage("Unable to start server");
+
+    }
+
+    @Override
+    public void onServerAlreadyRunning(String IP, int port, boolean isSecure)
+    {
+        Log.d(TAG, "onServerAlreadyRunning() called with: IP = [" + IP + "], port = [" + port + "], isSecure = [" + isSecure + "]");
+        showServerAddress(IP + ":" + port,isSecure);
+        showPulseAnimation();
+        startButton.setTag("started");
+        startButton.setText("STOP");
+
+        Toast.makeText(getContext(),"server running",Toast.LENGTH_SHORT).show();
     }
 
 
+    private void showMessage(String message)
+    {
+        if(getView() != null)
+            Snackbar.make(getView(),message,Snackbar.LENGTH_SHORT).show();
+        else
+            Toast.makeText(getContext(),message,Toast.LENGTH_SHORT).show();
+    }
 }
-
-
