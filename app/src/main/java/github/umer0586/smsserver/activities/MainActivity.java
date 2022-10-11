@@ -3,130 +3,77 @@ package github.umer0586.smsserver.activities;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
-
+import androidx.fragment.app.FragmentActivity;
+import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 
-
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
+
+import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.tabs.TabLayoutMediator;
 
 import github.umer0586.smsserver.R;
 import github.umer0586.smsserver.fragments.ServerFragment;
 import github.umer0586.smsserver.fragments.SettingsFragment;
 
-/**
- *  This activity contains two Fragments
- *
- *  ServerFragment : Contains start/Stop button at center which allows user to start/stop server
- *  SettingsFragment : Contains settings
- */
 public class MainActivity extends AppCompatActivity {
 
-
-
-    //Fragments
-    private ServerFragment serverFragment;
-    private SettingsFragment settingsFragment;
-
-    // active fragment
-    private Fragment activeFragment;
+    private ViewPager2 viewPager;
+    private MyFragmentStateAdapter myFragmentStateAdapter;
+    private TabLayout tabLayout;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_main_2);
 
-        // see https://stackoverflow.com/a/54978055/9193164
-        if(savedInstanceState == null)
-            setupFragments();
+        viewPager = findViewById(R.id.viewpager);
+        tabLayout = findViewById(R.id.tab_layout);
+
+
+        myFragmentStateAdapter =  new MyFragmentStateAdapter(this);
+        viewPager.setAdapter(myFragmentStateAdapter);
+
+        new TabLayoutMediator(tabLayout,viewPager, (tab,position)->{
+
+            if(position == 0)
+                tab.setText("Server");
+            else if(position == 1)
+                tab.setText("Settings");
+
+        }).attach();
 
     }
 
-    private void setupFragments()
-    {
-        serverFragment = new ServerFragment();
-        settingsFragment = new SettingsFragment();
 
-        getSupportFragmentManager().beginTransaction()
-                .add(R.id.fragment_container, serverFragment, null)
-                .hide(serverFragment)
-                .commit();
+    public class MyFragmentStateAdapter extends FragmentStateAdapter {
 
-        getSupportFragmentManager().beginTransaction()
-                .add(R.id.fragment_container, settingsFragment, null)
-                .hide(settingsFragment)
-                .commit();
+        public MyFragmentStateAdapter(@NonNull FragmentActivity fragmentActivity)
+        {
+            super(fragmentActivity);
+        }
 
-        getSupportFragmentManager().beginTransaction()
-                .show(serverFragment)
-                .commit();
+        @NonNull
+        @Override
+        public Fragment createFragment(int position)
+        {
+            switch(position)
+            {
+                case 0:
+                    return new ServerFragment();
+                case 1:
+                    return new SettingsFragment();
+            }
 
-        activeFragment = serverFragment;
+            return null;
+        }
 
-
-        // transaction.commit() is non blocking call therefore we need to make sure no transaction is pending
-        getSupportFragmentManager().executePendingTransactions();
+        @Override
+        public int getItemCount()
+        {
+            return 2;
+        }
     }
-
-    private void showServerFragment()
-    {
-        getSupportFragmentManager().beginTransaction()
-                .hide(activeFragment)
-                .show(serverFragment)
-                .commit();
-
-        activeFragment = serverFragment;
-        getSupportActionBar().setTitle("SMS Server");
-        getSupportActionBar().setDisplayHomeAsUpEnabled(false); // hide back button from ActionBar
-    }
-
-    private void showSettingsFragment()
-    {
-        getSupportFragmentManager().beginTransaction()
-                .hide(activeFragment)
-                .show(settingsFragment)
-                .commit();
-
-        activeFragment = settingsFragment;
-        getSupportActionBar().setTitle("Settings");
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true); // show back button on ActionBar
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu)
-    {
-
-        getMenuInflater().inflate(R.menu.menu, menu);
-        return super.onCreateOptionsMenu(menu);
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item)
-    {
-        if(item.getItemId() == R.id.menu_item_settings)
-           showSettingsFragment();
-
-        // When back button is pressed on ActionBar
-        if(item.getItemId() == android.R.id.home)
-            showServerFragment();
-
-
-
-        return super.onOptionsItemSelected(item);
-    }
-
-    /**
-     *  onBackPressed() invokes finish() which in result invoked onDestroy()
-     *  so to prevent activity from destroying when user presses back button, we must move activity back task
-     */
-    @Override
-    public void onBackPressed()
-    {
-        moveTaskToBack(true);
-    }
-
-
 }
