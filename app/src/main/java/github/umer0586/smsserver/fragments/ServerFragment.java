@@ -94,10 +94,10 @@ public class ServerFragment extends Fragment implements ServerCallbackProvider.S
     private void stopServer()
     {
 
-        Intent intent = new Intent(getContext(),SMSService.class);
+        Intent intent = new Intent();
         intent.setAction(SMSService.ACTION_STOP_SERVER);
 
-        ContextCompat.startForegroundService(getContext(),intent);
+        getContext().sendBroadcast(intent);
 
     }
 

@@ -23,9 +23,10 @@ import java.net.UnknownHostException;
 import github.umer0586.smsserver.R;
 import github.umer0586.smsserver.SMSServer;
 import github.umer0586.smsserver.activities.MainActivity;
+import github.umer0586.smsserver.broadcastreceiver.MessageProvider;
 import github.umer0586.smsserver.util.IpUtil;
 
-public class SMSService extends Service {
+public class SMSService extends Service implements MessageProvider.MessageListener {
 
     private static final String TAG = SMSService.class.getSimpleName();
     public static final String CHANNEL_ID = "ForegroundServiceChannel";
@@ -45,8 +46,12 @@ public class SMSService extends Service {
     public static final String HOST_PORT= "HOST_PORT";
     public static final String HOST_SECURE = "HOST_SECURE";
 
+    private MessageProvider messageProvider;
+
+
     // cannot be zero
     public static final int ON_GOING_NOTIFICATION_ID = 123;
+    private static final int TEMP_NOTIFICATION_ID = 420;
 
     private SharedPreferences sharedPreferences;
 
@@ -56,46 +61,50 @@ public class SMSService extends Service {
         super.onCreate();
         Log.d(TAG, "onCreate() called");
 
+        createNotificationChannel();
         sharedPreferences = getApplicationContext().getSharedPreferences(getString(R.string.shared_pref_file), getApplicationContext().MODE_PRIVATE);
 
-        createNotificationChannel();
+        messageProvider = new MessageProvider(getApplicationContext());
+        messageProvider.setMessageListener(this);
+        messageProvider.registerEvents();
+
+    }
+
+    @Override
+    public void onMessage(int message)
+    {
+        Log.d(TAG, "onMessage() called with: message = [" + message + "]");
+
+        if(message == MessageProvider.MESSAGE_IS_SERVER_RUNNING)
+        {
+            if (smsServer != null && smsServer.isAlive())
+            {
+                Intent i = new Intent(ACTION_EVENT_SERVER_ALREADY_RUNNING);
+
+                i.putExtra(HOST_IP, smsServer.getHostname());
+                i.putExtra(HOST_PORT, smsServer.getListeningPort());
+                i.putExtra(HOST_SECURE, smsServer.isSecure());
+
+                Log.i(TAG, "SMS server already running ");
+                Log.i(TAG, "Broadcasting : " + ACTION_EVENT_SERVER_ALREADY_RUNNING);
+
+                sendBroadcast(i);
+            } else
+                Log.i(TAG, "SMS server not running");
+        }
+
+        if(message == MessageProvider.MESSAGE_STOP_SERVER)
+        {
+            stopForeground(true);
+            stopSelf();
+        }
+
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId)
     {
         Log.d(TAG, "onStartCommand() called with: intent = [" + intent + "], flags = [" + flags + "], startId = [" + startId + "]");
-
-        if (intent != null && intent.getAction() != null)
-        {
-            if (intent.getAction().equals(ACTION_STOP_SERVER))
-            {
-                stopForeground(true);
-                stopSelf();
-            }
-
-            if (intent.getAction().equals(ACTION_REQUEST_IS_SERVER_RUNNING))
-            {
-                if (smsServer != null && smsServer.isAlive())
-                {
-                    Intent i = new Intent(ACTION_EVENT_SERVER_ALREADY_RUNNING);
-
-                    i.putExtra(HOST_IP, smsServer.getHostname());
-                    i.putExtra(HOST_PORT, smsServer.getListeningPort());
-                    i.putExtra(HOST_SECURE, smsServer.isSecure());
-
-                    Log.i(TAG, "SMS server already running ");
-                    Log.i(TAG, "Broadcasting : " + ACTION_EVENT_SERVER_ALREADY_RUNNING);
-
-                    sendBroadcast(i);
-                } else
-                    Log.i(TAG, "SMS server not running");
-
-            }
-
-            return START_NOT_STICKY;
-        }
-
 
         String hostIP = IpUtil.getWifiIpAddress(getApplicationContext());
         int portNo = sharedPreferences.getInt(getString(R.string.pref_key_port_no), 8080);
@@ -113,6 +122,7 @@ public class SMSService extends Service {
 
             sendBroadcast(i);
 
+            handleAndroid8andabove();
             stopForeground(true);
             stopSelf();
 
@@ -185,6 +195,10 @@ public class SMSService extends Service {
 
             sendBroadcast(i);
             e.printStackTrace();
+
+            handleAndroid8andabove();
+            stopForeground(true);
+            stopSelf();
         }
 
 
@@ -233,10 +247,13 @@ public class SMSService extends Service {
     public void onDestroy()
     {
         super.onDestroy();
+        Log.d(TAG, "onDestroy() called");
 
         if (smsServer != null)
             if (smsServer.isAlive())
                 smsServer.stop();
+
+        messageProvider.unregisterEvents();
 
     }
 
@@ -245,5 +262,22 @@ public class SMSService extends Service {
     {
 
         return null;
+    }
+
+    private void handleAndroid8andabove()
+    {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+        {
+
+            Notification tempNotification =  new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID)
+                    .setSmallIcon(R.drawable.ic_baseline_sms_24)
+                    .setContentTitle("")
+                    .setContentText("").build();
+
+            startForeground(TEMP_NOTIFICATION_ID, tempNotification);
+            //stopForeground(true);
+
+
+        }
     }
 }

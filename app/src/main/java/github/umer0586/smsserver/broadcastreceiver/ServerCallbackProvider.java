@@ -75,9 +75,9 @@ public class ServerCallbackProvider extends BroadcastReceiver {
     public void checkIfServerIsRunning()
     {
         Log.d(TAG, "checkIfServerIsRunning() called");
-        Intent intent = new Intent(this.context, SMSService.class);
+        Intent intent = new Intent();
         intent.setAction(SMSService.ACTION_REQUEST_IS_SERVER_RUNNING);
-        ContextCompat.startForegroundService(this.context,intent);
+        context.sendBroadcast(intent);
     }
 
     public void registerEvents()
