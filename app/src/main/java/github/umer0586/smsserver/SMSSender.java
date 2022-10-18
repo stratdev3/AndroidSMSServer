@@ -69,9 +69,14 @@ public class SMSSender {
         // always declare local
         final Object lock = new Object();
 
-        //This PendingIntent is broadcast when the message is successfully sent, or failed.
-        // The result code will be Activity.RESULT_OK for success
-        PendingIntent sentPI = PendingIntent.getBroadcast(this.context, 0, new Intent(SENT), 0);
+        /*
+         This PendingIntent is broadcast when the message is successfully sent, or failed.
+         The result code will be Activity.RESULT_OK for success
+
+         Targeting S+ (version 31 (android 12) and above) requires that one of FLAG_IMMUTABLE or FLAG_MUTABLE be specified when creating a PendingIntent.
+         Strongly consider using FLAG_IMMUTABLE, only use FLAG_MUTABLE if some functionality depends on the PendingIntent being mutable, e.g. if it needs to be used with inline replies or bubbles.
+        */
+        PendingIntent sentPI = PendingIntent.getBroadcast(this.context, 0, new Intent(SENT), PendingIntent.FLAG_IMMUTABLE);
 
         //This PendingIntent is broadcast when the message is delivered to the recipient.
         // The raw pdu of the status report is in the extended data ("pdu").
