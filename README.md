@@ -18,7 +18,7 @@ request.post({
   url: 'http://192.168.0.101:8081/sendSMS',
   form: {
     phone: '03475144819',
-    message: 'Your verification code is 1234'
+    message: 'Hello World !'
   }
 }, function (err, httpResponse, body) { 
 
