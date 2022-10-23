@@ -26,14 +26,14 @@ import java.net.BindException;
 import java.net.UnknownHostException;
 
 import github.umer0586.smsserver.R;
-import github.umer0586.smsserver.broadcastreceiver.ServerCallbackProvider;
+import github.umer0586.smsserver.broadcastreceiver.ServerEventsReceiver;
 import github.umer0586.smsserver.services.SMSService;
 
-public class ServerFragment extends Fragment implements ServerCallbackProvider.ServerEventsListener{
+public class ServerFragment extends Fragment implements ServerEventsReceiver.ServerEventsListener{
 
     private static final String TAG =  ServerFragment.class.getSimpleName();
 
-    private ServerCallbackProvider serverCallbackProvider;
+    private ServerEventsReceiver serverEventsReceiver;
 
     // Button at center to start/stop server
     private MaterialButton startButton;
@@ -71,10 +71,10 @@ public class ServerFragment extends Fragment implements ServerCallbackProvider.S
         lockIcon = view.findViewById(R.id.lock_icon);
         cardView = view.findViewById(R.id.card_view);
 
-        serverCallbackProvider = new ServerCallbackProvider(getContext());
-        serverCallbackProvider.setServerEventsListener(this);
-        serverCallbackProvider.registerEvents();
-        serverCallbackProvider.checkIfServerIsRunning();
+        serverEventsReceiver = new ServerEventsReceiver(getContext());
+        serverEventsReceiver.setServerEventsListener(this);
+        serverEventsReceiver.registerEvents();
+        serverEventsReceiver.checkIfServerIsRunning();
 
         hidePulseAnimation();
         hideServerAddress();
@@ -127,7 +127,7 @@ public class ServerFragment extends Fragment implements ServerCallbackProvider.S
     {
         super.onPause();
         Log.d(TAG, "onPause() called");
-        serverCallbackProvider.unregisterEvents();
+        serverEventsReceiver.unregisterEvents();
     }
 
     @Override
@@ -135,8 +135,8 @@ public class ServerFragment extends Fragment implements ServerCallbackProvider.S
     {
         super.onResume();
         Log.d(TAG, "onResume() called");
-        serverCallbackProvider.registerEvents();
-        serverCallbackProvider.checkIfServerIsRunning();
+        serverEventsReceiver.registerEvents();
+        serverEventsReceiver.checkIfServerIsRunning();
     }
 
 
@@ -180,7 +180,7 @@ public class ServerFragment extends Fragment implements ServerCallbackProvider.S
     {
         super.onDestroyView();
         Log.d(TAG, "onDestroyView() called");
-        serverCallbackProvider.unregisterEvents();
+        serverEventsReceiver.unregisterEvents();
     }
 
     @Override

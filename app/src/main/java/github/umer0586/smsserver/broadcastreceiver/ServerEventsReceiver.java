@@ -12,7 +12,7 @@ import androidx.core.content.ContextCompat;
 
 import github.umer0586.smsserver.services.SMSService;
 
-public class ServerCallbackProvider extends BroadcastReceiver {
+public class ServerEventsReceiver extends BroadcastReceiver {
 
     private static final String TAG = ServerEventsListener.class.getSimpleName();
 
@@ -22,7 +22,7 @@ public class ServerCallbackProvider extends BroadcastReceiver {
 
     private boolean isRegistered = false;
 
-    public ServerCallbackProvider(@NonNull Context context)
+    public ServerEventsReceiver(@NonNull Context context)
     {
         this.context = context;
     }
