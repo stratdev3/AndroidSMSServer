@@ -23,10 +23,10 @@ import java.net.UnknownHostException;
 import github.umer0586.smsserver.R;
 import github.umer0586.smsserver.SMSServer;
 import github.umer0586.smsserver.activities.MainActivity;
-import github.umer0586.smsserver.broadcastreceiver.MessageProvider;
+import github.umer0586.smsserver.broadcastreceiver.MessageReceiver;
 import github.umer0586.smsserver.util.IpUtil;
 
-public class SMSService extends Service implements MessageProvider.MessageListener {
+public class SMSService extends Service implements MessageReceiver.MessageListener {
 
     private static final String TAG = SMSService.class.getSimpleName();
     public static final String CHANNEL_ID = "ForegroundServiceChannel";
@@ -46,7 +46,7 @@ public class SMSService extends Service implements MessageProvider.MessageListen
     public static final String HOST_PORT= "HOST_PORT";
     public static final String HOST_SECURE = "HOST_SECURE";
 
-    private MessageProvider messageProvider;
+    private MessageReceiver messageReceiver;
 
 
     // cannot be zero
@@ -64,9 +64,9 @@ public class SMSService extends Service implements MessageProvider.MessageListen
         createNotificationChannel();
         sharedPreferences = getApplicationContext().getSharedPreferences(getString(R.string.shared_pref_file), getApplicationContext().MODE_PRIVATE);
 
-        messageProvider = new MessageProvider(getApplicationContext());
-        messageProvider.setMessageListener(this);
-        messageProvider.registerEvents();
+        messageReceiver = new MessageReceiver(getApplicationContext());
+        messageReceiver.setMessageListener(this);
+        messageReceiver.registerEvents();
 
     }
 
@@ -75,7 +75,7 @@ public class SMSService extends Service implements MessageProvider.MessageListen
     {
         Log.d(TAG, "onMessage() called with: message = [" + message + "]");
 
-        if(message == MessageProvider.MESSAGE_IS_SERVER_RUNNING)
+        if(message == MessageReceiver.MESSAGE_IS_SERVER_RUNNING)
         {
             if (smsServer != null && smsServer.isAlive())
             {
@@ -93,7 +93,7 @@ public class SMSService extends Service implements MessageProvider.MessageListen
                 Log.i(TAG, "SMS server not running");
         }
 
-        if(message == MessageProvider.MESSAGE_STOP_SERVER)
+        if(message == MessageReceiver.MESSAGE_STOP_SERVER)
         {
             stopForeground(true);
             stopSelf();
@@ -253,7 +253,7 @@ public class SMSService extends Service implements MessageProvider.MessageListen
             if (smsServer.isAlive())
                 smsServer.stop();
 
-        messageProvider.unregisterEvents();
+        messageReceiver.unregisterEvents();
 
     }
 

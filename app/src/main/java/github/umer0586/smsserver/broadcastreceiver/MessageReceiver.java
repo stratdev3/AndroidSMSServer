@@ -10,9 +10,9 @@ import androidx.annotation.NonNull;
 
 import github.umer0586.smsserver.services.SMSService;
 
-public class MessageProvider extends BroadcastReceiver {
+public class MessageReceiver extends BroadcastReceiver {
 
-    private static final String TAG = MessageProvider.class.getSimpleName();
+    private static final String TAG = MessageReceiver.class.getSimpleName();
 
     private MessageListener messageListener;
 
@@ -23,7 +23,7 @@ public class MessageProvider extends BroadcastReceiver {
     public static final int MESSAGE_IS_SERVER_RUNNING = 0;
     public static final int MESSAGE_STOP_SERVER = 1;
 
-    public MessageProvider(@NonNull Context context)
+    public MessageReceiver(@NonNull Context context)
     {
         this.context = context;
     }
