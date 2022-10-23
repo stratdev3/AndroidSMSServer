@@ -8,7 +8,6 @@ import android.os.Bundle;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.core.content.ContextCompat;
 
 import github.umer0586.smsserver.services.SMSService;
 
