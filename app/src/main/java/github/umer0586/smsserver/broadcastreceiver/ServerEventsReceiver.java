@@ -11,6 +11,17 @@ import androidx.annotation.NonNull;
 
 import github.umer0586.smsserver.services.SMSService;
 
+/*
+* This is a broadcast receiver which receives public broadcast events from SMSService (foreground service)
+* and dispatch those events/info through listener interface (ServerEventsListener)
+*
+* As of now LocalBroadcastManager is deprecated and EventBus (https://github.com/greenrobot/EventBus) was causing
+* app crash (without crash log) while sending events from server thread (running in Service) to Main thread. For quick implementation
+* public broadcast was only solution for me.
+*
+* For local communication between service and fragments we can bind to a already running service and communicate via IBinder interface, which i will try to implement later :-)
+* */
+
 public class ServerEventsReceiver extends BroadcastReceiver {
 
     private static final String TAG = ServerEventsListener.class.getSimpleName();
@@ -85,6 +96,10 @@ public class ServerEventsReceiver extends BroadcastReceiver {
 
         IntentFilter intentFilter = new IntentFilter();
 
+        /*
+        * list of intent actions broadcast by SMSService class
+        * which are received by this broadcast receiver
+         * */
         intentFilter.addAction(SMSService.ACTION_EVENT_SERVER_STARTED);
         intentFilter.addAction(SMSService.ACTION_EVENT_SERVER_STOPPED);
         intentFilter.addAction(SMSService.ACTION_EVENT_SERVER_ERROR);
