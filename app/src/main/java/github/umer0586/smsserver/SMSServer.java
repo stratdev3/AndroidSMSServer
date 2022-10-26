@@ -1,6 +1,5 @@
 package github.umer0586.smsserver;
 
-import static github.umer0586.smsserver.util.JsonUtil.toJSON;
 
 import android.Manifest;
 import android.content.Context;
@@ -38,7 +37,7 @@ public class SMSServer extends NanoHTTPD {
     private onStartedListener onStartedListener;
     private onStoppedListener onStoppedListener;
 
-    public SMSServer(@NonNull Context context,@NonNull String hostname, @NonNull int port)
+    public SMSServer(@NonNull Context context,@NonNull String hostname, int port)
     {
         super(hostname, port);
 
@@ -104,19 +103,14 @@ public class SMSServer extends NanoHTTPD {
         Log.i(TAG, "request URI: "+ session.getUri());
         Log.i(TAG, "request headers " + session.getHeaders());
 
-        final HashMap<String,Object> responseBody = new HashMap<>();
 
         // check requested method
         if(session.getMethod() != Method.POST)
         {
-
-            responseBody.clear();
-            responseBody.put("error","Method " + session.getMethod() + " not allowed, use POST");
-
             return newFixedLengthResponse(
                     Response.Status.METHOD_NOT_ALLOWED,
-                    "application/json",
-                    toJSON(responseBody)
+                    "text/plain",
+                    "Method " + session.getMethod() + " not allowed, use POST"
             );
         }
 
@@ -125,14 +119,10 @@ public class SMSServer extends NanoHTTPD {
 
        if(contentType == null || !contentType.equalsIgnoreCase("application/x-www-form-urlencoded"))
        {
-           responseBody.clear();
-           responseBody.put("error","un supported media type");
-           responseBody.put("required content-type","application/x-www-form-urlencoded");
-
            return newFixedLengthResponse(
                    Response.Status.UNSUPPORTED_MEDIA_TYPE,
-                   "application/json",
-                   toJSON(responseBody)
+                   "text/plain",
+                   "un supported Content-Type please use application/x-www-form-urlencoded "
            );
        }
 
@@ -156,14 +146,10 @@ public class SMSServer extends NanoHTTPD {
 
         } catch (IOException | ResponseException e) {
 
-            responseBody.clear();
-            responseBody.put("error","exception occurred");
-            responseBody.put("exception", e.getMessage());
-
-            return newFixedLengthResponse(
+          return newFixedLengthResponse(
                     Response.Status.INTERNAL_ERROR,
-                    "application/json",
-                    toJSON(responseBody)
+                    "text/plain",
+                    "Exception occurred while parsing : " + e.getMessage()
             );
         }
 
@@ -171,21 +157,15 @@ public class SMSServer extends NanoHTTPD {
         if( session.getUri().equalsIgnoreCase("/sendSMS"))
             return handleSMSRequest(session);
 
-
-        responseBody.clear();
-        responseBody.put("error","unknown request path. Use /sendSMS");
-
         return newFixedLengthResponse(
                 Response.Status.NOT_FOUND,
-                "application/json",
-                toJSON(responseBody)
+                "text/plain",
+                "unknown request path. Use /sendSMS"
         );
     }
 
     private Response handleSMSRequest(IHTTPSession session)
     {
-
-        final HashMap<String,Object> responseBody = new HashMap<>();
 
         Uri uri = Uri.parse(session.getUri()+ "?" +session.getQueryParameterString());
 
@@ -198,25 +178,20 @@ public class SMSServer extends NanoHTTPD {
 
         if(phone == null)
         {
-            responseBody.clear();
-            responseBody.put("error","<phone> parameter missing");
-
             return newFixedLengthResponse(
                     Response.Status.BAD_REQUEST,
-                    "application/json",
-                    toJSON(responseBody)
+                    "text/plain",
+                    "<phone> parameter missing"
             );
 
         }
         else if( message == null)
         {
-            responseBody.clear();
-            responseBody.put("error","<message> parameter missing");
 
             return newFixedLengthResponse(
                     Response.Status.BAD_REQUEST,
-                    "application/json",
-                    toJSON(responseBody)
+                    "text/plain",
+                    "<message> parameter missing"
             );
         }
 
@@ -226,24 +201,21 @@ public class SMSServer extends NanoHTTPD {
 
             if(password == null)
             {
-                responseBody.clear();
-                responseBody.put("error","<password> parameter required");
+
                 return newFixedLengthResponse(
                         Response.Status.BAD_REQUEST,
-                        "application/json",
-                        toJSON(responseBody)
+                        "text/plain",
+                        "<password> parameter required"
                 );
 
             }
 
             else if(!this.getPassword().equals(password))
             {
-                responseBody.clear();
-                responseBody.put("error","invalid Password");
 
-                Response httpsResponse = newFixedLengthResponse(toJSON(responseBody));
+                Response httpsResponse = newFixedLengthResponse("invalid Password");
                 httpsResponse.addHeader("WWW-Authenticate","Invalid Password");
-                httpsResponse.setMimeType("application/json");
+                httpsResponse.setMimeType("text/plain");
                 httpsResponse.setStatus(Response.Status.UNAUTHORIZED);
 
                 return httpsResponse;
@@ -253,42 +225,37 @@ public class SMSServer extends NanoHTTPD {
 
         if(!hasPermissionToSendSMS())
         {
-            responseBody.clear();
-            responseBody.put("error","Permission is required to send SMS");
             return newFixedLengthResponse(
                     Response.Status.FORBIDDEN,
-                    "application/json",
-                    toJSON(responseBody)
+                    "text/plain",
+                    "App has no permission to send sms, please grant permission in settings"
             );
 
         }
 
         // send sms when everything is OKAY !
         //blocking call
-        final HashMap<String,Object> resultMap = smsSender.sendSMS(phone,message);
-        final String status = (String) resultMap.get("status");
-        final boolean sentFailed = status.equals(SMSSender.STATUS_SENT_FAIL);
+        final SMSResult result = smsSender.sendSMS(phone,message);
 
-
-        if(status.equals(SMSSender.STATUS_EXCEPTION_OCCURRED))
+        if(result.getStatus() == SMSResult.STATUS_EXCEPTION_OCCURRED)
             return newFixedLengthResponse(
                     Response.Status.BAD_REQUEST, //because the client has provided invalid address
-                    "application/json",
-                    toJSON(resultMap)
+                    "text/plain",
+                    "Exception occurred while sending sms : \n " + result.getReason()
             );
 
-        if(sentFailed)
+        if(result.getStatus() == SMSResult.STATUS_SENT_FAIL)
             return newFixedLengthResponse(
                     Response.Status.INTERNAL_ERROR,
-                    "application/json",
-                    toJSON(resultMap)
+                    "text/plain",
+                    "Unable to send sms " + result.getReason()
             );
 
         // when successful
         return newFixedLengthResponse(
                 Response.Status.OK,
-                "application/json",
-                toJSON(resultMap)
+                "text/plain",
+                "sms successfully sent to " + phone
         );
 
     }
