@@ -1,6 +1,5 @@
 package github.umer0586.smsserver;
 
-import static github.umer0586.smsserver.util.JsonUtil.toJSON;
 
 import android.app.Activity;
 import android.app.PendingIntent;
@@ -12,11 +11,9 @@ import android.telephony.SmsManager;
 
 import androidx.annotation.NonNull;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 
 import java.lang.reflect.Field;
-import java.util.HashMap;
+
 
 public class SMSSender {
 
@@ -28,14 +25,6 @@ public class SMSSender {
     //Update: Beginning with Android 4.4 this intent will only be delivered to the default sms app.
     //private static final String DELIVERED = "SMS_DELIVERED_ACTION";
 
-    public static final String STATUS_SENT_SUCCESS = "Message successfully sent";
-    public static final String STATUS_SENT_FAIL = "Unable to send Message";
-
-   // public static final String STATUS_DELIVERY_SUCCESS = "Message successfully delivered";
-    //public static final String STATUS_DELIVERY_FAIL = "Message not delivered";
-
-
-    public static final String STATUS_EXCEPTION_OCCURRED = "Exception occurred while sending message";
 
     private SmsManager smsManager = SmsManager.getDefault();
 
@@ -59,12 +48,12 @@ public class SMSSender {
      *
      * @param phone target address to send sms to
      * @param message text to send
-     * @return HashMap containing result info
+     * @return SMSResult
      */
-    public HashMap<String,Object> sendSMS(@NonNull final String phone , @NonNull final String message)
+    public SMSResult sendSMS(@NonNull final String phone , @NonNull final String message)
     {
         // always declare local
-        final HashMap<String, Object> resultHashMap = new HashMap<>();
+        final SMSResult smsResult = new SMSResult();
 
         // always declare local
         final Object lock = new Object();
@@ -90,14 +79,12 @@ public class SMSSender {
             {
                 if(getResultCode() == Activity.RESULT_OK)
                 {
-                    resultHashMap.clear();
-                    resultHashMap.put("status",STATUS_SENT_SUCCESS);
+                    smsResult.setStatus(SMSResult.STATUS_SENT_SUCCESS);
                 }
                 else
                 {
-                    resultHashMap.clear();
-                    resultHashMap.put("status",STATUS_SENT_FAIL);
-                    resultHashMap.put("reason",getErrorString(getResultCode()));
+                    smsResult.setStatus(SMSResult.STATUS_SENT_FAIL);
+                    smsResult.setReason(getErrorString(getResultCode()));
                 }
 
                 synchronized (lock)
@@ -162,13 +149,13 @@ public class SMSSender {
 
         }catch(Exception e){
             e.printStackTrace();
-            resultHashMap.clear();
-            resultHashMap.put("status",STATUS_EXCEPTION_OCCURRED);
-            resultHashMap.put("exception", e.getMessage());
+
+            smsResult.setStatus(SMSResult.STATUS_EXCEPTION_OCCURRED);
+            smsResult.setReason(e.getMessage());
 
         }
 
-        return resultHashMap;
+        return smsResult;
     }
 
 
