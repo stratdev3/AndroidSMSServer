@@ -20,8 +20,6 @@ public class MessageReceiver extends BroadcastReceiver {
 
     private boolean isRegistered = false;
 
-    public static final int MESSAGE_IS_SERVER_RUNNING = 0;
-    public static final int MESSAGE_STOP_SERVER = 1;
 
     public MessageReceiver(@NonNull Context context)
     {
@@ -33,17 +31,10 @@ public class MessageReceiver extends BroadcastReceiver {
     {
         Log.d(TAG, "onReceive() called with: context = [" + context + "], intent = [" + intent + "]");
 
-        if(intent.getAction().equals(SMSService.ACTION_REQUEST_IS_SERVER_RUNNING))
-        {
+        // Dispatch received broadcast intent via MessageListener Interface
             if(messageListener != null)
-                messageListener.onMessage(MESSAGE_IS_SERVER_RUNNING);
-        }
+                messageListener.onMessage(intent);
 
-        if(intent.getAction().equals(SMSService.ACTION_STOP_SERVER))
-        {
-            if(messageListener != null)
-                messageListener.onMessage(MESSAGE_STOP_SERVER);
-        }
     }
 
     public void setMessageListener(MessageListener messageListener)
@@ -91,6 +82,6 @@ public class MessageReceiver extends BroadcastReceiver {
 
 
     public interface MessageListener {
-        public void onMessage(int message);
+        public void onMessage(Intent intent);
     }
 }
