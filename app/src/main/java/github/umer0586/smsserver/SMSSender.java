@@ -117,7 +117,7 @@ public class SMSSender {
             }
         }, new IntentFilter(DELIVERED));*/
 
-
+        // TODO : https://developer.android.com/reference/android/telephony/SmsManager#getDefault()
         SmsManager smsManager = SmsManager.getDefault();
 
         try{
