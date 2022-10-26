@@ -1,4 +1,4 @@
-package github.umer0586.smsserver;
+package github.umer0586.smsserver.smssender;
 
 
 import android.app.Activity;

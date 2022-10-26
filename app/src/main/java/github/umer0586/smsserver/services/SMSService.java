@@ -21,7 +21,7 @@ import java.io.Serializable;
 import java.net.UnknownHostException;
 
 import github.umer0586.smsserver.R;
-import github.umer0586.smsserver.SMSServer;
+import github.umer0586.smsserver.httpserver.SMSServer;
 import github.umer0586.smsserver.activities.MainActivity;
 import github.umer0586.smsserver.broadcastreceiver.MessageReceiver;
 import github.umer0586.smsserver.util.IpUtil;

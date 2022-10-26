@@ -1,4 +1,4 @@
-package github.umer0586.smsserver;
+package github.umer0586.smsserver.httpserver;
 
 
 import android.Manifest;
@@ -18,6 +18,8 @@ import java.util.HashMap;
 import javax.net.ssl.KeyManagerFactory;
 
 import fi.iki.elonen.NanoHTTPD;
+import github.umer0586.smsserver.smssender.SMSResult;
+import github.umer0586.smsserver.smssender.SMSSender;
 
 public class SMSServer extends NanoHTTPD {
 
