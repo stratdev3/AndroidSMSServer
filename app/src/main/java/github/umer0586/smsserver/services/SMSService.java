@@ -26,26 +26,38 @@ import github.umer0586.smsserver.activities.MainActivity;
 import github.umer0586.smsserver.broadcastreceiver.MessageReceiver;
 import github.umer0586.smsserver.util.IpUtil;
 
+/*
+* This is a Foreground Service which runs HTTP server (SMSServer) thread and notifies
+* its events by broadcasting intents and receives broadcasts from fragment/Activity via MessageListener
+* interface provided by MessageReceiver (BroadCastReceiver)
+* */
+
 public class SMSService extends Service implements MessageReceiver.MessageListener {
 
     private static final String TAG = SMSService.class.getSimpleName();
     public static final String CHANNEL_ID = "ForegroundServiceChannel";
+
+    // Http server
     private SMSServer smsServer;
 
+    // Broadcast intent action (published by other app's component) to stop server thread
     public static final String ACTION_STOP_SERVER = "ACTION_STOP_SERVER";
 
+    // Intents actions which are broadcast by this service
     public static final String ACTION_EVENT_SERVER_STARTED = "ACTION_EVENT_SERVER_STARTED";
     public static final String ACTION_EVENT_SERVER_STOPPED = "ACTION_EVENT_SERVER_STOPPED";
     public static final String ACTION_EVENT_SERVER_ERROR = "ACTION_EVENT_SERVER_ERROR";
     public static final String ACTION_EVENT_SERVER_ALREADY_RUNNING = "ACTION_EVENT_SERVER_ALREADY_RUNNING";
     public static final String ACTION_EVENT_FAILED_TO_OBTAIN_IP = "ACTION_EVENT_FAILED_TO_OBTAIN_IP";
 
+    //Broadcast intent action (published by other app's component) to check state of http server thread
     public static final String ACTION_REQUEST_IS_SERVER_RUNNING = "ACTION_REQUEST_IS_SERVER_RUNNING";
 
     public static final String HOST_IP = "HOST_IP";
     public static final String HOST_PORT= "HOST_PORT";
     public static final String HOST_SECURE = "HOST_SECURE";
 
+    //Intents broadcast by Fragment/Activity are received by this service via MessageReceiver (BroadCastReceiver)
     private MessageReceiver messageReceiver;
 
 
@@ -71,11 +83,11 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
     }
 
     @Override
-    public void onMessage(int message)
+    public void onMessage(Intent intent)
     {
-        Log.d(TAG, "onMessage() called with: message = [" + message + "]");
+        Log.d(TAG, "onMessage() called with: intent = [" + intent + "]");
 
-        if(message == MessageReceiver.MESSAGE_IS_SERVER_RUNNING)
+        if(intent.getAction().equals(ACTION_REQUEST_IS_SERVER_RUNNING) )
         {
             if (smsServer != null && smsServer.isAlive())
             {
@@ -93,7 +105,7 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
                 Log.i(TAG, "SMS server not running");
         }
 
-        if(message == MessageReceiver.MESSAGE_STOP_SERVER)
+        if( intent.getAction().equals(ACTION_STOP_SERVER) )
         {
             stopForeground(true);
             stopSelf();
@@ -122,7 +134,13 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
 
             sendBroadcast(i);
 
-            handleAndroid8andabove();
+            handleAndroid8andAbove();
+
+            /*
+              Here if we don't call startForeground() for android 8 and above the app
+              will crash since service.startForeground() must be called with 5 second after call to context.startForegroundService(),
+              handleAndroid8andAbove() (called above) should explicitly handle this
+            */
             stopForeground(true);
             stopSelf();
 
@@ -196,7 +214,7 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
             sendBroadcast(i);
             e.printStackTrace();
 
-            handleAndroid8andabove();
+            handleAndroid8andAbove();
             stopForeground(true);
             stopSelf();
         }
@@ -230,8 +248,8 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
         {
             Log.d(TAG, "createNotificationChannel() called");
 
-            CharSequence name = "my_channel";
-            String description = "temp description";
+            CharSequence name = "SMS-Server";
+            String description = "Notifications from SMS-server";
             int importance = NotificationManager.IMPORTANCE_DEFAULT;
             NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
             channel.setDescription(description);
@@ -264,7 +282,14 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
         return null;
     }
 
-    private void handleAndroid8andabove()
+    /*
+    * For Android 8 and above there is a framework restriction which required service.startForeground()
+    * method to be called within five seconds after call to Context.startForegroundService()
+    * so make sure we call this method even if we are returning from service.onStartCommand() without calling
+    * service.startForeground()
+    *
+    * */
+    private void handleAndroid8andAbove()
     {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
         {
