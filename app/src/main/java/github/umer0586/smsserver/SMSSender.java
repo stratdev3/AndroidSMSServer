@@ -17,40 +17,20 @@ import java.lang.reflect.Field;
 
 public class SMSSender {
 
-    private Context context;
-    private static SMSSender instance;
 
     private static final String SENT = "SMS_SENT_ACTION";
 
     //Update: Beginning with Android 4.4 this intent will only be delivered to the default sms app.
     //private static final String DELIVERED = "SMS_DELIVERED_ACTION";
 
-
-    private SmsManager smsManager = SmsManager.getDefault();
-
-    public static SMSSender getInstance(@NonNull Context context)
-    {
-
-        if( instance == null)
-            instance = new SMSSender(context);
-
-        return instance;
-    }
-
-    private SMSSender(@NonNull Context context)
-    {
-        this.context = context;
-    }
-
-
     /**
-     * Sends sms and blocks until sms is successfully or unsuccessfully sent or not
+     * Sends sms and blocks until sms is successfully sent or failed
      *
      * @param phone target address to send sms to
      * @param message text to send
      * @return SMSResult
      */
-    public SMSResult sendSMS(@NonNull final String phone , @NonNull final String message)
+    public static SMSResult sendSMS(@NonNull Context context,@NonNull final String phone , @NonNull final String message)
     {
         // always declare local
         final SMSResult smsResult = new SMSResult();
@@ -65,7 +45,7 @@ public class SMSSender {
          Targeting S+ (version 31 (android 12) and above) requires that one of FLAG_IMMUTABLE or FLAG_MUTABLE be specified when creating a PendingIntent.
          Strongly consider using FLAG_IMMUTABLE, only use FLAG_MUTABLE if some functionality depends on the PendingIntent being mutable, e.g. if it needs to be used with inline replies or bubbles.
         */
-        PendingIntent sentPI = PendingIntent.getBroadcast(this.context, 0, new Intent(SENT), PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent sentPI = PendingIntent.getBroadcast(context, 0, new Intent(SENT), PendingIntent.FLAG_IMMUTABLE);
 
         //This PendingIntent is broadcast when the message is delivered to the recipient.
         // The raw pdu of the status report is in the extended data ("pdu").
@@ -73,7 +53,7 @@ public class SMSSender {
 
        // PendingIntent deliveredPI = PendingIntent.getBroadcast(this.context, 0, new Intent(DELIVERED), 0);
 
-        this.context.registerReceiver(new BroadcastReceiver(){
+        context.registerReceiver(new BroadcastReceiver(){
             @Override
             public void onReceive(Context ctx, Intent intent)
             {
@@ -137,6 +117,8 @@ public class SMSSender {
             }
         }, new IntentFilter(DELIVERED));*/
 
+
+        SmsManager smsManager = SmsManager.getDefault();
 
         try{
 

@@ -24,7 +24,6 @@ public class SMSServer extends NanoHTTPD {
 
     private static final String TAG = SMSServer.class.getSimpleName();
 
-    private SMSSender smsSender;
     private Context context;
 
     private boolean isSecure = false;
@@ -42,7 +41,6 @@ public class SMSServer extends NanoHTTPD {
         super(hostname, port);
 
         this.context = context;
-        smsSender = SMSSender.getInstance(context);
 
     }
 
@@ -235,7 +233,7 @@ public class SMSServer extends NanoHTTPD {
 
         // send sms when everything is OKAY !
         //blocking call
-        final SMSResult result = smsSender.sendSMS(phone,message);
+        final SMSResult result = SMSSender.sendSMS(context,phone,message);
 
         if(result.getStatus() == SMSResult.STATUS_EXCEPTION_OCCURRED)
             return newFixedLengthResponse(
