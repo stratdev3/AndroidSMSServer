@@ -26,7 +26,6 @@ request.post({
 
  })
 ```
-Response body will always be in `JSON` formate.
 
 # Note
 As per Android offical docs https://developer.android.com/about/versions/kitkat/android-4.4#SMS 
