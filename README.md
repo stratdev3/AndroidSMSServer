@@ -26,6 +26,19 @@ request.post({
 
  })
 ```
+# HTTP status code return by server
+
+|Code|Description|
+|----|-----------|
+|200 (OK)| When SMS is successfully sent  |
+|400 (BAD REQUEST)| When either `phone`,`message` or `password` parameter is missing|
+|405 (METHOD NOT ALLOWED)| When `POST` method is not used|
+|415 (UN SUPPORTED MEDIA TYPE)| When `Content-Type` sent by client is not `application/x-www-form-urlencoded`|
+|404 (NOT FOUND)| When `/sendSMS` is not used|
+|401 (UNAUTHORIZED)| When client provides invalid `password`|
+|403 (FORBIDDEN)| When app has no permission to send SMS |
+|500 (INTERNAL SERVER ERROR)| When some exception occur while sending SMS |
+
 
 # Note
 As per Android offical docs https://developer.android.com/about/versions/kitkat/android-4.4#SMS 
