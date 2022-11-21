@@ -20,12 +20,14 @@ import androidx.fragment.app.Fragment;
 
 import com.github.ybq.android.spinkit.SpinKitView;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.net.BindException;
 import java.net.UnknownHostException;
 
 import github.umer0586.smsserver.R;
+import github.umer0586.smsserver.activities.FeedbackActivity;
 import github.umer0586.smsserver.broadcastreceiver.ServerEventsReceiver;
 import github.umer0586.smsserver.services.SMSService;
 
@@ -46,6 +48,9 @@ public class ServerFragment extends Fragment implements ServerEventsReceiver.Ser
 
     // card view which holds serverAddress and lockIcon
     private CardView cardView;
+
+    // button to start feedback activity
+    private ExtendedFloatingActionButton feedbackButton;
 
     //Ripple animation behind startButton
     private SpinKitView pulseAnimation;
@@ -69,6 +74,7 @@ public class ServerFragment extends Fragment implements ServerEventsReceiver.Ser
         serverAddress = view.findViewById(R.id.server_address);
         pulseAnimation = view.findViewById(R.id.loading_animation);
         lockIcon = view.findViewById(R.id.lock_icon);
+        feedbackButton = view.findViewById(R.id.feedback_button);
         cardView = view.findViewById(R.id.card_view);
 
         serverEventsReceiver = new ServerEventsReceiver(getContext());
@@ -85,6 +91,10 @@ public class ServerFragment extends Fragment implements ServerEventsReceiver.Ser
                 startServer();
             else if(v.getTag().equals("started"))
                 stopServer();
+        });
+
+        feedbackButton.setOnClickListener(v->{
+            startActivity(new Intent(getContext(), FeedbackActivity.class));
         });
 
 

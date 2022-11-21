@@ -15,6 +15,10 @@
         android:roundIcon="@mipmap/app_icon_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AndroidSMSServer">
+        <activity
+            android:name=".activities.FeedbackActivity"
+            android:theme="@style/Theme.AndroidSMSServer.NoActionBar"
+            android:exported="true" />
 
         <service
             android:name=".services.SMSService"
