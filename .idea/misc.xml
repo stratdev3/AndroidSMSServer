@@ -3,6 +3,7 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Android_Studio_Projects/AndroidSMSServer/MyLibModule/src/main/res/layout/activity_feedback.xml" value="0.11770833333333333" />
         <entry key="..\:/Android_Studio_Projects/AndroidSMSServer/app/src/main/res/drawable/app_icon_foreground.xml" value="0.1814814814814815" />
         <entry key="..\:/Android_Studio_Projects/AndroidSMSServer/app/src/main/res/drawable/circle.xml" value="0.18611111111111112" />
         <entry key="..\:/Android_Studio_Projects/AndroidSMSServer/app/src/main/res/layout/activity_feedback.xml" value="0.18229166666666666" />
@@ -22,6 +23,7 @@
         <entry key="..\:/Android_Studio_Projects/AndroidSMSServer/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" value="0.1814814814814815" />
         <entry key="..\:/Android_Studio_Projects/AndroidSMSServer/app/src/main/res/xml/root_preferences.xml" value="0.18" />
         <entry key="..\:/Android_Studio_Projects/AndroidSMSServer/app/src/main/res/xml/settings.xml" value="0.25" />
+        <entry key="..\:/Android_Studio_Projects/AndroidSMSServer/userfeedback/src/main/res/layout/activity_user_feedback.xml" value="0.11770833333333333" />
       </map>
     </option>
   </component>
