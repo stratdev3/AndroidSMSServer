@@ -48,7 +48,6 @@ public class MessageReceiver extends BroadcastReceiver {
 
         IntentFilter intentFilter = new IntentFilter();
 
-        intentFilter.addAction(SMSService.ACTION_REQUEST_IS_SERVER_RUNNING);
         intentFilter.addAction(SMSService.ACTION_STOP_SERVER);
 
         try
