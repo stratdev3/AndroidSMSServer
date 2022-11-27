@@ -1,8 +1,11 @@
 package github.umer0586.smsserver.fragments;
 
+import android.content.ComponentName;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.text.Html;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -20,21 +23,22 @@ import androidx.fragment.app.Fragment;
 
 import com.github.ybq.android.spinkit.SpinKitView;
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.net.BindException;
 import java.net.UnknownHostException;
 
 import github.umer0586.smsserver.R;
-import github.umer0586.smsserver.broadcastreceiver.ServerEventsReceiver;
 import github.umer0586.smsserver.services.SMSService;
+import github.umer0586.smsserver.services.ServiceBindHelper;
+import github.umer0586.smsserver.util.UIUtil;
 
-public class ServerFragment extends Fragment implements ServerEventsReceiver.ServerEventsListener{
+public class ServerFragment extends Fragment implements ServiceConnection, SMSService.ServerStatesListener {
 
     private static final String TAG =  ServerFragment.class.getSimpleName();
 
-    private ServerEventsReceiver serverEventsReceiver;
+    private SMSService smsService;
+    private ServiceBindHelper serviceBindHelper;
 
     // Button at center to start/stop server
     private MaterialButton startButton;
@@ -55,6 +59,8 @@ public class ServerFragment extends Fragment implements ServerEventsReceiver.Ser
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState)
     {
+        serviceBindHelper = new ServiceBindHelper(getContext(),this,SMSService.class);
+        getLifecycle().addObserver(serviceBindHelper);
         return inflater.inflate(R.layout.fragment_server, container, false);
     }
 
@@ -64,18 +70,12 @@ public class ServerFragment extends Fragment implements ServerEventsReceiver.Ser
     {
         super.onViewCreated(view, savedInstanceState);
 
-        Log.d(TAG, "onViewCreated() called with: view = [" + view + "], savedInstanceState = [" + savedInstanceState + "]");
-
         startButton = view.findViewById(R.id.start_button);
         serverAddress = view.findViewById(R.id.server_address);
         pulseAnimation = view.findViewById(R.id.loading_animation);
         lockIcon = view.findViewById(R.id.lock_icon);
         cardView = view.findViewById(R.id.card_view);
 
-        serverEventsReceiver = new ServerEventsReceiver(getContext());
-        serverEventsReceiver.setServerEventsListener(this);
-        serverEventsReceiver.registerEvents();
-        serverEventsReceiver.checkIfServerIsRunning();
 
         hidePulseAnimation();
         hideServerAddress();
@@ -108,7 +108,7 @@ public class ServerFragment extends Fragment implements ServerEventsReceiver.Ser
 
         WifiManager wifiManager = (WifiManager) getContext().getApplicationContext().getSystemService(getContext().WIFI_SERVICE);
 
-        if(!wifiManager.isWifiEnabled())
+       if(!wifiManager.isWifiEnabled())
         {
             showMessage("Please enable Wi-Fi");
             return;
@@ -127,18 +127,10 @@ public class ServerFragment extends Fragment implements ServerEventsReceiver.Ser
     {
         super.onPause();
         Log.d(TAG, "onPause() called");
-        serverEventsReceiver.unregisterEvents();
-    }
 
-    @Override
-    public void onResume()
-    {
-        super.onResume();
-        Log.d(TAG, "onResume() called");
-        serverEventsReceiver.registerEvents();
-        serverEventsReceiver.checkIfServerIsRunning();
+        if(smsService != null)
+            smsService.setServerStatesListener(null);
     }
-
 
     private void showServerAddress(final String address, boolean secure)
     {
@@ -176,48 +168,54 @@ public class ServerFragment extends Fragment implements ServerEventsReceiver.Ser
 
 
     @Override
-    public void onDestroyView()
-    {
-        super.onDestroyView();
-        Log.d(TAG, "onDestroyView() called");
-        serverEventsReceiver.unregisterEvents();
-    }
-
-    @Override
     public void onServerStarted(String IP, int port, boolean isSecure)
     {
         Log.d(TAG, "onServerStarted() called with: IP = [" + IP + "], port = [" + port + "], isSecure = [" + isSecure + "]");
-        showServerAddress(IP + ":" + port,isSecure);
-        showPulseAnimation();
-        startButton.setTag("started");
-        startButton.setText("STOP");
 
-        showMessage("SMS server started");
+        UIUtil.runOnUiThread(()->{
+
+            showServerAddress(IP + ":" + port,isSecure);
+            showPulseAnimation();
+            startButton.setTag("started");
+            startButton.setText("STOP");
+
+            showMessage("SMS server started");
+        });
+
 
     }
 
     @Override
     public void onServerStopped()
     {
-        hideServerAddress();
-        hidePulseAnimation();
-        startButton.setTag("stopped");
-        startButton.setText("START");
 
-        showMessage("SMS server stopped");
+        UIUtil.runOnUiThread(()->{
+            hideServerAddress();
+            hidePulseAnimation();
+            startButton.setTag("stopped");
+            startButton.setText("START");
+
+            showMessage("SMS server stopped");
+        });
+
     }
 
     @Override
-    public void onError(Throwable throwable)
+    public void onServerError(Throwable throwable)
     {
         Log.d(TAG, "onError() called with: throwable = [" + throwable + "]");
 
-        if(throwable instanceof BindException)
-            showMessage("Address already in use");
-        else if(throwable instanceof UnknownHostException )
-            showMessage("Unable to obtain IP address");
-        else
-            showMessage("Unable to start server");
+
+        UIUtil.runOnUiThread(()->{
+
+            if(throwable instanceof BindException)
+                showMessage("Address already in use");
+            else if(throwable instanceof UnknownHostException )
+                showMessage("Unable to obtain IP address");
+            else
+                showMessage("Unable to start server");
+        });
+
 
     }
 
@@ -225,14 +223,47 @@ public class ServerFragment extends Fragment implements ServerEventsReceiver.Ser
     public void onServerAlreadyRunning(String IP, int port, boolean isSecure)
     {
         Log.d(TAG, "onServerAlreadyRunning() called with: IP = [" + IP + "], port = [" + port + "], isSecure = [" + isSecure + "]");
-        showServerAddress(IP + ":" + port,isSecure);
-        showPulseAnimation();
-        startButton.setTag("started");
-        startButton.setText("STOP");
 
-        Toast.makeText(getContext(),"server running",Toast.LENGTH_SHORT).show();
+        UIUtil.runOnUiThread(()->{
+
+            showServerAddress(IP + ":" + port,isSecure);
+            showPulseAnimation();
+            startButton.setTag("started");
+            startButton.setText("STOP");
+
+            Toast.makeText(getContext(),"server running",Toast.LENGTH_SHORT).show();
+        });
+
     }
 
+
+    @Override
+    public void onServiceConnected(ComponentName name, IBinder binder)
+    {
+
+        Log.d(TAG, "onServiceConnected() ");
+
+        SMSService.LocalBinder localBinder = (SMSService.LocalBinder) binder;
+        smsService = localBinder.getService();
+
+        smsService.setServerStatesListener(this);
+        smsService.isServerRunning();
+
+
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName name)
+    {
+
+    }
+
+    @Override
+    public void onDestroy()
+    {
+        super.onDestroy();
+        getLifecycle().removeObserver(serviceBindHelper);
+    }
 
     private void showMessage(String message)
     {

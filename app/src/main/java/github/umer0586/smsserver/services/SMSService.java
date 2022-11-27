@@ -7,8 +7,8 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Binder;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.IBinder;
 import android.text.Html;
 import android.text.Spanned;
@@ -17,20 +17,14 @@ import android.util.Log;
 import androidx.core.app.NotificationCompat;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.net.UnknownHostException;
 
 import github.umer0586.smsserver.R;
-import github.umer0586.smsserver.httpserver.SMSServer;
 import github.umer0586.smsserver.activities.MainActivity;
 import github.umer0586.smsserver.broadcastreceiver.MessageReceiver;
+import github.umer0586.smsserver.httpserver.SMSServer;
 import github.umer0586.smsserver.util.IpUtil;
 
-/*
-* This is a Foreground Service which runs HTTP server (SMSServer) thread and notifies
-* its events by broadcasting intents and receives broadcasts from fragment/Activity via MessageListener
-* interface provided by MessageReceiver (BroadCastReceiver)
-* */
 
 public class SMSService extends Service implements MessageReceiver.MessageListener {
 
@@ -40,25 +34,18 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
     // Http server
     private SMSServer smsServer;
 
+    // Binder given to clients
+    private final IBinder binder = new LocalBinder();
+
     // Broadcast intent action (published by other app's component) to stop server thread
-    public static final String ACTION_STOP_SERVER = "ACTION_STOP_SERVER";
-
-    // Intents actions which are broadcast by this service
-    public static final String ACTION_EVENT_SERVER_STARTED = "ACTION_EVENT_SERVER_STARTED";
-    public static final String ACTION_EVENT_SERVER_STOPPED = "ACTION_EVENT_SERVER_STOPPED";
-    public static final String ACTION_EVENT_SERVER_ERROR = "ACTION_EVENT_SERVER_ERROR";
-    public static final String ACTION_EVENT_SERVER_ALREADY_RUNNING = "ACTION_EVENT_SERVER_ALREADY_RUNNING";
-    public static final String ACTION_EVENT_FAILED_TO_OBTAIN_IP = "ACTION_EVENT_FAILED_TO_OBTAIN_IP";
-
-    //Broadcast intent action (published by other app's component) to check state of http server thread
-    public static final String ACTION_REQUEST_IS_SERVER_RUNNING = "ACTION_REQUEST_IS_SERVER_RUNNING";
-
-    public static final String HOST_IP = "HOST_IP";
-    public static final String HOST_PORT= "HOST_PORT";
-    public static final String HOST_SECURE = "HOST_SECURE";
+    public static final String ACTION_STOP_SERVER = "ACTION_STOP_SERVER_"+SMSService.class.getName();
 
     //Intents broadcast by Fragment/Activity are received by this service via MessageReceiver (BroadCastReceiver)
     private MessageReceiver messageReceiver;
+
+
+    //callbacks
+    ServerStatesListener serverStatesListener;
 
 
     // cannot be zero
@@ -87,28 +74,13 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
     {
         Log.d(TAG, "onMessage() called with: intent = [" + intent + "]");
 
-        if(intent.getAction().equals(ACTION_REQUEST_IS_SERVER_RUNNING) )
-        {
-            if (smsServer != null && smsServer.isAlive())
-            {
-                Intent i = new Intent(ACTION_EVENT_SERVER_ALREADY_RUNNING);
-
-                i.putExtra(HOST_IP, smsServer.getHostname());
-                i.putExtra(HOST_PORT, smsServer.getListeningPort());
-                i.putExtra(HOST_SECURE, smsServer.isSecure());
-
-                Log.i(TAG, "SMS server already running ");
-                Log.i(TAG, "Broadcasting : " + ACTION_EVENT_SERVER_ALREADY_RUNNING);
-
-                sendBroadcast(i);
-            } else
-                Log.i(TAG, "SMS server not running");
-        }
-
         if( intent.getAction().equals(ACTION_STOP_SERVER) )
         {
-            stopForeground(true);
-            stopSelf();
+            if(smsServer != null && smsServer.isAlive())
+            {
+                smsServer.stop();
+                stopForeground(true);
+            }
         }
 
     }
@@ -117,6 +89,7 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
     public int onStartCommand(Intent intent, int flags, int startId)
     {
         Log.d(TAG, "onStartCommand() called with: intent = [" + intent + "], flags = [" + flags + "], startId = [" + startId + "]");
+        handleAndroid8andAbove();
 
         String hostIP = IpUtil.getWifiIpAddress(getApplicationContext());
         int portNo = sharedPreferences.getInt(getString(R.string.pref_key_port_no), 8080);
@@ -125,25 +98,10 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
         {
             Log.i(TAG, "hostIP = null");
 
+            if(serverStatesListener != null)
+                serverStatesListener.onServerError(new UnknownHostException());
 
-            Bundle extras = new Bundle();
-            extras.putSerializable("EXCEPTION",(Serializable) new UnknownHostException());
-
-            Intent i = new Intent(ACTION_EVENT_FAILED_TO_OBTAIN_IP);
-            i.putExtras(extras);
-
-            sendBroadcast(i);
-
-            handleAndroid8andAbove();
-
-            /*
-              Here if we don't call startForeground() for android 8 and above the app
-              will crash since service.startForeground() must be called with 5 second after call to context.startForegroundService(),
-              handleAndroid8andAbove() (called above) should explicitly handle this
-            */
             stopForeground(true);
-            stopSelf();
-
 
             return START_NOT_STICKY;
         }
@@ -164,28 +122,10 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
             smsServer.setPassword(password);
         }
 
-        smsServer.setOnStartedListener((ip, port) -> {
+        smsServer.setOnStartedListener((ip, port, isSecure) -> {
 
-            Intent i = new Intent(ACTION_EVENT_SERVER_STARTED);
-            i.putExtra(HOST_IP, hostIP);
-            i.putExtra(HOST_PORT, port);
-            i.putExtra(HOST_SECURE, smsServer.isSecure());
-            sendBroadcast(i);
-
-
-        });
-
-        smsServer.setOnStoppedListener(() -> {
-            Intent i = new Intent(ACTION_EVENT_SERVER_STOPPED);
-            sendBroadcast(i);
-        });
-
-
-        try
-        {
-
-            smsServer.start();
-
+            if(serverStatesListener != null)
+                serverStatesListener.onServerStarted(ip,port,isSecure);
 
             Intent notificationIntent = new Intent(this, MainActivity.class);
             PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
@@ -203,20 +143,30 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
             Notification notification = notificationBuilder.build();
             startForeground(ON_GOING_NOTIFICATION_ID, notification);
 
+        });
+
+        smsServer.setOnStoppedListener(() -> {
+
+            if(serverStatesListener != null)
+                serverStatesListener.onServerStopped();
+
+            stopForeground(true);
+        });
+
+
+        try
+        {
+
+            smsServer.start();
+
+
         } catch (IOException e)
         {
-            Bundle extras = new Bundle();
-            extras.putSerializable("EXCEPTION",(Serializable) e);
+            if(serverStatesListener != null)
+                serverStatesListener.onServerError(e);
 
-            Intent i = new Intent(ACTION_EVENT_SERVER_ERROR);
-            i.putExtras(extras);
-
-            sendBroadcast(i);
-            e.printStackTrace();
-
-            handleAndroid8andAbove();
             stopForeground(true);
-            stopSelf();
+
         }
 
 
@@ -275,11 +225,19 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
 
     }
 
+    public void isServerRunning()
+    {
+        if(smsServer != null && smsServer.isAlive())
+        {
+            if(serverStatesListener != null)
+                serverStatesListener.onServerAlreadyRunning(smsServer.getHostname(), smsServer.getListeningPort(),smsServer.isSecure());
+        }
+    }
+
     @Override
     public IBinder onBind(Intent intent)
     {
-
-        return null;
+        return binder;
     }
 
     /*
@@ -300,9 +258,36 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
                     .setContentText("").build();
 
             startForeground(TEMP_NOTIFICATION_ID, tempNotification);
-            //stopForeground(true);
+            stopForeground(true);
 
 
         }
     }
+
+    /**
+     * Class used for the client Binder.  Because we know this service always
+     * runs in the same process as its clients, we don't need to deal with IPC.
+     */
+    public class LocalBinder extends Binder {
+
+        public SMSService getService() {
+            // Return this instance of LocalService so clients can call public methods
+            return SMSService.this;
+        }
+
+    }
+
+    public void setServerStatesListener(ServerStatesListener serverStatesListener)
+    {
+        this.serverStatesListener = serverStatesListener;
+    }
+
+    public interface ServerStatesListener {
+
+        void onServerStarted(String IP, int port, boolean isSecure);
+        void onServerAlreadyRunning(String IP, int port, boolean isSecure);
+        void onServerStopped();
+        void onServerError(Throwable throwable);
+    }
+
 }
