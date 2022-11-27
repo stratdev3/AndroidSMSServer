@@ -292,7 +292,7 @@ public class SMSServer extends NanoHTTPD {
 
          super.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
            if(onStartedListener!=null)
-               onStartedListener.onStarted(getHostname(),getListeningPort());
+               onStartedListener.onStarted(getHostname(),getListeningPort(),isSecure());
 
     }
 
@@ -308,7 +308,7 @@ public class SMSServer extends NanoHTTPD {
 
     @FunctionalInterface
     public interface onStartedListener {
-        void onStarted(final String host, final int port);
+        void onStarted(final String host, final int port, boolean isSecure);
     }
     @FunctionalInterface
     public interface onStoppedListener {
