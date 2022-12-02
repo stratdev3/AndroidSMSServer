@@ -19,7 +19,7 @@ import com.google.android.material.snackbar.Snackbar;
 import com.tbruyelle.rxpermissions3.RxPermissions;
 
 import github.umer0586.smsserver.R;
-
+// TODO : #9 (Add hotspot feature)
 public class SettingsFragment extends PreferenceFragmentCompat {
 
         private static final String TAG = SettingsFragment.class.getSimpleName();
