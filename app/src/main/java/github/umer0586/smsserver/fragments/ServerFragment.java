@@ -268,7 +268,11 @@ public class ServerFragment extends Fragment implements ServiceConnection, SMSSe
     private void showMessage(String message)
     {
         if(getView() != null)
-            Snackbar.make(getView(),message,Snackbar.LENGTH_SHORT).show();
+        {
+            Snackbar snackbar = Snackbar.make(getView(), message, Snackbar.LENGTH_SHORT);
+            snackbar.setAnchorView(R.id.tab_layout);
+            snackbar.show();
+        }
         else
             Toast.makeText(getContext(),message,Toast.LENGTH_SHORT).show();
     }
