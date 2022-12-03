@@ -6,7 +6,6 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
@@ -23,6 +22,7 @@ import github.umer0586.smsserver.R;
 import github.umer0586.smsserver.activities.MainActivity;
 import github.umer0586.smsserver.broadcastreceiver.MessageReceiver;
 import github.umer0586.smsserver.httpserver.SMSServer;
+import github.umer0586.smsserver.setting.AppSettings;
 import github.umer0586.smsserver.util.IpUtil;
 
 
@@ -50,9 +50,8 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
 
     // cannot be zero
     public static final int ON_GOING_NOTIFICATION_ID = 123;
-    private static final int TEMP_NOTIFICATION_ID = 420;
 
-    private SharedPreferences sharedPreferences;
+    private AppSettings appSettings;
 
     @Override
     public void onCreate()
@@ -61,7 +60,7 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
         Log.d(TAG, "onCreate() called");
 
         createNotificationChannel();
-        sharedPreferences = getApplicationContext().getSharedPreferences(getString(R.string.shared_pref_file), getApplicationContext().MODE_PRIVATE);
+        appSettings = new AppSettings(getApplicationContext());
 
         messageReceiver = new MessageReceiver(getApplicationContext());
         messageReceiver.setMessageListener(this);
@@ -88,16 +87,13 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
     @Override
     public int onStartCommand(Intent intent, int flags, int startId)
     {
-        Log.d(TAG, "onStartCommand() called with: intent = [" + intent + "], flags = [" + flags + "], startId = [" + startId + "]");
+        Log.d(TAG, "onStartCommand()");
         handleAndroid8andAbove();
 
         String hostIP = IpUtil.getWifiIpAddress(getApplicationContext());
-        int portNo = sharedPreferences.getInt(getString(R.string.pref_key_port_no), 8080);
 
         if (hostIP == null)
         {
-            Log.i(TAG, "hostIP = null");
-
             if(serverStatesListener != null)
                 serverStatesListener.onServerError(new UnknownHostException());
 
@@ -106,20 +102,17 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
             return START_NOT_STICKY;
         }
 
-        smsServer = new SMSServer(getApplicationContext(), hostIP, portNo);
-        boolean isSecureConnectionEnable = sharedPreferences.getBoolean(getString(R.string.pref_key_secure_connection), false);
+        smsServer = new SMSServer(getApplicationContext(), hostIP, appSettings.getPortNo());
+
         // If user has enabled "Use secure connection" option
-        if (isSecureConnectionEnable)
+        if (appSettings.isSecureConnectionEnable())
             smsServer.makeSecure();
 
-
-        boolean isPasswordEnable = sharedPreferences.getBoolean(getString(R.string.pref_key_password_switch), false);
         //If user has enabled the password option
-        if (isPasswordEnable)
+        if (appSettings.isPasswordEnable())
         {
-            String password = sharedPreferences.getString(getString(R.string.pref_key_password), null);
             smsServer.enablePassword();
-            smsServer.setPassword(password);
+            smsServer.setPassword(appSettings.getPassword());
         }
 
         smsServer.setOnStartedListener((ip, port, isSecure) -> {
@@ -131,7 +124,7 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
             PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
 
             NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID)
-                    .setSmallIcon(R.drawable.ic_baseline_sms_24)
+                    .setSmallIcon(R.drawable.icon_sms)
                     .setContentTitle("SMS Server Running")
                     .setContentText(getAddress())
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -215,7 +208,7 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
     public void onDestroy()
     {
         super.onDestroy();
-        Log.d(TAG, "onDestroy() called");
+        Log.d(TAG, "onDestroy()");
 
         if (smsServer != null)
             if (smsServer.isAlive())
@@ -253,10 +246,11 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
         {
 
             Notification tempNotification =  new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID)
-                    .setSmallIcon(R.drawable.ic_baseline_sms_24)
+                    .setSmallIcon(R.drawable.icon_sms)
                     .setContentTitle("")
                     .setContentText("").build();
 
+            final int TEMP_NOTIFICATION_ID = 420;
             startForeground(TEMP_NOTIFICATION_ID, tempNotification);
             stopForeground(true);
 

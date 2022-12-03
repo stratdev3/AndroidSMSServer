@@ -19,23 +19,27 @@ import com.google.android.material.snackbar.Snackbar;
 import com.tbruyelle.rxpermissions3.RxPermissions;
 
 import github.umer0586.smsserver.R;
+import github.umer0586.smsserver.setting.AppSettings;
+
 // TODO : #9 (Add hotspot feature)
 public class SettingsFragment extends PreferenceFragmentCompat {
 
         private static final String TAG = SettingsFragment.class.getSimpleName();
-        private SharedPreferences sharedPreferences;
+
         private RxPermissions rxPermissions;
         private Preference smsPermissionPref;
+        private AppSettings appSettings;
 
 
         @Override
         public void onCreatePreferences(Bundle savedInstanceState, String rootKey)
         {
             setPreferencesFromResource(R.xml.settings, rootKey);
-            sharedPreferences = getContext().getSharedPreferences(getString(R.string.shared_pref_file), Context.MODE_PRIVATE);
-            handlePortPref();
+
+            appSettings = new AppSettings(getContext());
             rxPermissions = new RxPermissions(this);
-            smsPermissionPref = findPreference(getString(R.string.pref_key_send_sms_permission));
+
+            handlePortPref();
             handleSMSPermission();
             handleSecureConnectionPref();
             handlePasswordPref();
@@ -47,9 +51,10 @@ public class SettingsFragment extends PreferenceFragmentCompat {
         {
             SwitchPreferenceCompat passwordSwitchPref = findPreference(getString(R.string.pref_key_password_switch));
             passwordSwitchPref.setOnPreferenceChangeListener(((preference, newValue) -> {
-                sharedPreferences.edit()
-                                 .putBoolean(getString(R.string.pref_key_password_switch), (boolean)newValue)
-                                 .commit();
+
+                boolean switchState = (boolean)newValue;
+                appSettings.enablePassword(switchState);
+
                 return true;
             }));
 
@@ -70,9 +75,8 @@ public class SettingsFragment extends PreferenceFragmentCompat {
 
                     preference.setSummary(getAsterisks(password.length()));
 
-                    sharedPreferences.edit()
-                                     .putString(getString(R.string.pref_key_password),password)
-                                     .commit();
+                    appSettings.savePassword(password);
+
                     return true;
                 }
 
@@ -95,6 +99,7 @@ public class SettingsFragment extends PreferenceFragmentCompat {
 
         private void handleSMSPermission()
         {
+            smsPermissionPref = findPreference(getString(R.string.pref_key_send_sms_permission));
 
             smsPermissionPref.setOnPreferenceClickListener(preference -> {
 
@@ -131,9 +136,8 @@ public class SettingsFragment extends PreferenceFragmentCompat {
 
                     if (portNo >= 1024 && portNo <= 49151)
                     {
-                        sharedPreferences.edit()
-                                .putInt(getString(R.string.pref_key_port_no),portNo)
-                                .commit();
+                        appSettings.savePortNo(portNo);
+
                         return true;
                     }
                     else {
@@ -156,11 +160,8 @@ public class SettingsFragment extends PreferenceFragmentCompat {
             SwitchPreferenceCompat secureConnectionPref = findPreference(getString(R.string.pref_key_secure_connection));
             secureConnectionPref.setOnPreferenceChangeListener(((preference, newValue) -> {
 
-                boolean newState = (boolean)newValue;
-
-                sharedPreferences.edit()
-                        .putBoolean(getString(R.string.pref_key_secure_connection),newState)
-                        .commit();
+                boolean switchState = (boolean)newValue;
+                appSettings.secureConnection(switchState);
 
                 return true;
 
