@@ -8,7 +8,7 @@
             app:title="Port No"
             app:dialogMessage="Enter Port No between 1024 to 49151"
             app:defaultValue="8080"
-            android:icon="@drawable/ic_baseline_info_24"
+            android:icon="@drawable/icon_info"
             app:useSimpleSummaryProvider="true" />
 
 
@@ -20,7 +20,7 @@
         <Preference
             app:key="@string/pref_key_send_sms_permission"
             app:title="SMS permission"
-            app:icon="@drawable/ic_baseline_sms_24"
+            app:icon="@drawable/icon_sms"
             app:summary="Allow SMS server to send SMS"
 
             />
@@ -34,7 +34,7 @@
         <SwitchPreferenceCompat
             app:key="@string/pref_key_secure_connection"
             app:title="Use secure connection"
-            app:icon="@drawable/ic_baseline_lock_24"
+            app:icon="@drawable/icon_lock"
             app:summary="Communication will be encrypted. App uses self signed certificate so ignore certificate check at client side"
 
             />
