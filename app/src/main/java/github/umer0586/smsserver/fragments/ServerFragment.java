@@ -3,7 +3,6 @@ package github.umer0586.smsserver.fragments;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.text.Html;
@@ -31,7 +30,9 @@ import java.net.UnknownHostException;
 import github.umer0586.smsserver.R;
 import github.umer0586.smsserver.services.SMSService;
 import github.umer0586.smsserver.services.ServiceBindHelper;
+import github.umer0586.smsserver.setting.AppSettings;
 import github.umer0586.smsserver.util.UIUtil;
+import github.umer0586.smsserver.util.WifiUtil;
 
 public class ServerFragment extends Fragment implements ServiceConnection, SMSService.ServerStatesListener {
 
@@ -39,6 +40,7 @@ public class ServerFragment extends Fragment implements ServiceConnection, SMSSe
 
     private SMSService smsService;
     private ServiceBindHelper serviceBindHelper;
+    private AppSettings appSettings;
 
     // Button at center to start/stop server
     private MaterialButton startButton;
@@ -76,6 +78,8 @@ public class ServerFragment extends Fragment implements ServiceConnection, SMSSe
         lockIcon = view.findViewById(R.id.lock_icon);
         cardView = view.findViewById(R.id.card_view);
 
+        appSettings = new AppSettings(getContext());
+
 
         hidePulseAnimation();
         hideServerAddress();
@@ -105,19 +109,33 @@ public class ServerFragment extends Fragment implements ServiceConnection, SMSSe
     {
         Log.d(TAG, "startServer() called");
 
+       if(appSettings.isHotspotOptionEnabled())
+       {
+           if(WifiUtil.isHotspotEnabled(getContext()))
+           {
+               Intent intent = new Intent(getContext(),SMSService.class);
+               ContextCompat.startForegroundService(getContext(),intent);
+           }
+           else
+           {
+               showMessage("Please enable Hotspot");
+           }
 
-        WifiManager wifiManager = (WifiManager) getContext().getApplicationContext().getSystemService(getContext().WIFI_SERVICE);
+       }
+       else // when hotspot option is not enabled by user then check for wifi availability
+       {
+           if(WifiUtil.isWifiEnabled(getContext()))
+           {
+               Intent intent = new Intent(getContext(),SMSService.class);
+               ContextCompat.startForegroundService(getContext(),intent);
+           }
+           else
+           {
+               showMessage("Please enable Wi-Fi");
+           }
 
-       if(!wifiManager.isWifiEnabled())
-        {
-            showMessage("Please enable Wi-Fi");
-            return;
-        }
+       }
 
-
-        Intent intent = new Intent(getContext(),SMSService.class);
-
-        ContextCompat.startForegroundService(getContext(),intent);
 
     }
 
@@ -210,8 +228,8 @@ public class ServerFragment extends Fragment implements ServiceConnection, SMSSe
 
             if(throwable instanceof BindException)
                 showMessage("Address already in use");
-            else if(throwable instanceof UnknownHostException )
-                showMessage("Unable to obtain IP address");
+            else if (throwable instanceof UnknownHostException)
+                showMessage(throwable.getMessage());
             else
                 showMessage("Unable to start server");
         });

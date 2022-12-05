@@ -90,19 +90,44 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
         Log.d(TAG, "onStartCommand()");
         handleAndroid8andAbove();
 
-        String hostIP = IpUtil.getWifiIpAddress(getApplicationContext());
-
-        if (hostIP == null)
+        if(appSettings.isHotspotOptionEnabled())
         {
-            if(serverStatesListener != null)
-                serverStatesListener.onServerError(new UnknownHostException());
+            String hotspotIpAddress = IpUtil.getHotspotIPAddress(getApplicationContext());
 
-            stopForeground(true);
+            if( hotspotIpAddress != null)
+            {
+                smsServer = new SMSServer(getApplicationContext(), hotspotIpAddress, appSettings.getPortNo());
+            }
+            else
+            {
+                if(serverStatesListener != null)
+                    serverStatesListener.onServerError(new UnknownHostException("Unable to obtain hotspot IP"));
 
-            return START_NOT_STICKY;
+                stopForeground(true);
+                return START_NOT_STICKY;
+            }
         }
+        else // when hotspot option is not enabled, use device's wifi ip
+        {
 
-        smsServer = new SMSServer(getApplicationContext(), hostIP, appSettings.getPortNo());
+            String wifiIpAddress = IpUtil.getWifiIpAddress(getApplicationContext());
+
+            if(wifiIpAddress != null)
+            {
+                smsServer = new SMSServer(getApplicationContext(), wifiIpAddress, appSettings.getPortNo());
+            }
+            else
+            {
+                if (serverStatesListener != null)
+                    serverStatesListener.onServerError(new UnknownHostException("Unable to obtain IP"));
+
+                stopForeground(true);
+
+                return START_NOT_STICKY;
+            }
+
+
+        }
 
         // If user has enabled "Use secure connection" option
         if (appSettings.isSecureConnectionEnable())

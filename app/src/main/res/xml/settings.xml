@@ -14,6 +14,22 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory app:title="Hotspot Options">
+
+
+        <SwitchPreferenceCompat
+            app:key="@string/pref_key_hotspot"
+            app:defaultValue="false"
+            app:title="Use Hotspot"
+            app:icon="@drawable/ic_wifi_tethering"
+            app:summaryOff="Use your device's hotspot"
+            />
+
+
+
+
+    </PreferenceCategory>
+
     <PreferenceCategory app:title="Permissions">
 
 

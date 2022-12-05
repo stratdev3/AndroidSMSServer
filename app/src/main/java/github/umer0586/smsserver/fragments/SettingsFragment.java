@@ -1,13 +1,8 @@
 package github.umer0586.smsserver.fragments;
 
 import android.Manifest;
-import android.content.Context;
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.net.Uri;
 import android.os.Bundle;
 import android.text.InputType;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.preference.EditTextPreference;
@@ -20,8 +15,9 @@ import com.tbruyelle.rxpermissions3.RxPermissions;
 
 import github.umer0586.smsserver.R;
 import github.umer0586.smsserver.setting.AppSettings;
+import github.umer0586.smsserver.util.IpUtil;
+import github.umer0586.smsserver.util.WifiUtil;
 
-// TODO : #9 (Add hotspot feature)
 public class SettingsFragment extends PreferenceFragmentCompat {
 
         private static final String TAG = SettingsFragment.class.getSimpleName();
@@ -43,11 +39,60 @@ public class SettingsFragment extends PreferenceFragmentCompat {
             handleSMSPermission();
             handleSecureConnectionPref();
             handlePasswordPref();
+            handleHotspotPref();
 
 
         }
 
-        private void handlePasswordPref()
+    @Override
+    public void onResume()
+    {
+        super.onResume();
+        if(!WifiUtil.isHotspotEnabled(getContext()))
+        {
+            SwitchPreferenceCompat hotspotPref = findPreference(getString(R.string.pref_key_hotspot));
+            hotspotPref.setChecked(false);
+            appSettings.enableHotspotOption(false);
+        }
+
+    }
+
+    private void handleHotspotPref()
+    {
+
+        SwitchPreferenceCompat hotspotPref = findPreference(getString(R.string.pref_key_hotspot));
+        hotspotPref.setOnPreferenceChangeListener(((preference, newValue) -> {
+
+            boolean newState = (boolean)newValue;
+
+            //User disabled the switch
+            if(newState == false)
+            {
+                appSettings.enableHotspotOption(false);
+                return true; //persist switch state without doing anything
+            }
+
+            if(newState == true)
+            {
+                if (WifiUtil.isHotspotEnabled(getContext()))
+                {
+                    appSettings.enableHotspotOption(true);
+                    hotspotPref.setSummary(IpUtil.getHotspotIPAddress(getContext()));
+                    return true;
+                }
+                else
+                {
+                    Snackbar.make(getView(),"Please enable hotspot",Snackbar.LENGTH_SHORT).show();
+                    appSettings.enableHotspotOption(false);
+                    return false;
+                }
+            }
+
+            return true;
+        }));
+    }
+
+    private void handlePasswordPref()
         {
             SwitchPreferenceCompat passwordSwitchPref = findPreference(getString(R.string.pref_key_password_switch));
             passwordSwitchPref.setOnPreferenceChangeListener(((preference, newValue) -> {

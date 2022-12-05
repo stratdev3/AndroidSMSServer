@@ -4,7 +4,6 @@ import android.content.Context;
 import android.net.wifi.WifiManager;
 
 import java.math.BigInteger;
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -14,9 +13,10 @@ import java.util.Enumeration;
 
 public class IpUtil {
 
+    // Taken from https://stackoverflow.com/a/18638588/9193164
     public static String getWifiIpAddress(Context context)
     {
-        WifiManager wifiManager = (WifiManager) context.getSystemService(context.WIFI_SERVICE);
+        WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         int ipAddress = wifiManager.getConnectionInfo().getIpAddress();
 
         // Convert little-endian to big-endianif needed
@@ -34,6 +34,39 @@ public class IpUtil {
         }
 
         return ipAddressString;
+    }
+
+    public static String getHotspotIPAddress(Context context) {
+
+        if(WifiUtil.isHotspotEnabled(context) == false)
+            return null;
+
+        String ipAddress = null;
+        try {
+            Enumeration<NetworkInterface> enumNetworkInterfaces = NetworkInterface.getNetworkInterfaces();
+
+            while (enumNetworkInterfaces.hasMoreElements())
+            {
+                NetworkInterface networkInterface = enumNetworkInterfaces.nextElement();
+                Enumeration<InetAddress> enumInetAddress = networkInterface.getInetAddresses();
+
+                while (enumInetAddress.hasMoreElements())
+                {
+                    InetAddress inetAddress = enumInetAddress.nextElement();
+
+                    if (inetAddress.isSiteLocalAddress())
+                    {
+                        ipAddress =  inetAddress.getHostAddress();
+                    }
+                }
+            }
+
+        } catch (SocketException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            ipAddress = null;
+        }
+        return ipAddress;
     }
 
 }

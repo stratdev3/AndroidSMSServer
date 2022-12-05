@@ -9,4 +9,6 @@
     <string name="pref_key_secure_connection">pref_key_secure_connection</string>
     <string name="pref_key_password_switch">pref_key_password_switch</string>
     <string name="pref_key_password">pref_key_password</string>
+    <string name="pref_key_hotspot">pref_key_hotspot</string>
+    <string name="pref_key_hotspot_ip">pref_key_hotspot_ip</string>
 </resources>
