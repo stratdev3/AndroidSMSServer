@@ -28,6 +28,7 @@ import java.net.BindException;
 import java.net.UnknownHostException;
 
 import github.umer0586.smsserver.R;
+import github.umer0586.smsserver.httpserver.ServerInfo;
 import github.umer0586.smsserver.services.SMSService;
 import github.umer0586.smsserver.services.ServiceBindHelper;
 import github.umer0586.smsserver.setting.AppSettings;
@@ -150,13 +151,14 @@ public class ServerFragment extends Fragment implements ServiceConnection, SMSSe
             smsService.setServerStatesListener(null);
     }
 
-    private void showServerAddress(final String address, boolean secure)
+    private void showServerAddress(ServerInfo serverInfo)
     {
+        String address = serverInfo.getIPAddress() + ":" + serverInfo.getPort();
 
         cardView.setVisibility(View.VISIBLE);
         serverAddress.setVisibility(View.VISIBLE);
 
-        if (secure)
+        if (serverInfo.isSecure())
         {
             lockIcon.setVisibility(View.VISIBLE);
             serverAddress.setText(Html.fromHtml("<font color=\"#5c6bc0\">https://</font>" + address));
@@ -186,13 +188,13 @@ public class ServerFragment extends Fragment implements ServiceConnection, SMSSe
 
 
     @Override
-    public void onServerStarted(String IP, int port, boolean isSecure)
+    public void onServerStarted(ServerInfo serverInfo)
     {
-        Log.d(TAG, "onServerStarted() called with: IP = [" + IP + "], port = [" + port + "], isSecure = [" + isSecure + "]");
+        Log.d(TAG, "onServerStarted()");
 
         UIUtil.runOnUiThread(()->{
 
-            showServerAddress(IP + ":" + port,isSecure);
+            showServerAddress(serverInfo);
             showPulseAnimation();
             startButton.setTag("started");
             startButton.setText("STOP");
@@ -238,13 +240,13 @@ public class ServerFragment extends Fragment implements ServiceConnection, SMSSe
     }
 
     @Override
-    public void onServerAlreadyRunning(String IP, int port, boolean isSecure)
+    public void onServerAlreadyRunning(ServerInfo serverInfo)
     {
-        Log.d(TAG, "onServerAlreadyRunning() called with: IP = [" + IP + "], port = [" + port + "], isSecure = [" + isSecure + "]");
+        Log.d(TAG, "onServerAlreadyRunning()");
 
         UIUtil.runOnUiThread(()->{
 
-            showServerAddress(IP + ":" + port,isSecure);
+            showServerAddress(serverInfo);
             showPulseAnimation();
             startButton.setTag("started");
             startButton.setText("STOP");

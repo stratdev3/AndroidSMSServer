@@ -22,6 +22,7 @@ import github.umer0586.smsserver.R;
 import github.umer0586.smsserver.activities.MainActivity;
 import github.umer0586.smsserver.broadcastreceiver.MessageReceiver;
 import github.umer0586.smsserver.httpserver.SMSServer;
+import github.umer0586.smsserver.httpserver.ServerInfo;
 import github.umer0586.smsserver.setting.AppSettings;
 import github.umer0586.smsserver.util.IpUtil;
 
@@ -140,10 +141,10 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
             smsServer.setPassword(appSettings.getPassword());
         }
 
-        smsServer.setOnStartedListener((ip, port, isSecure) -> {
+        smsServer.setOnStartedListener((serverInfo) -> {
 
             if(serverStatesListener != null)
-                serverStatesListener.onServerStarted(ip,port,isSecure);
+                serverStatesListener.onServerStarted(serverInfo);
 
             Intent notificationIntent = new Intent(this, MainActivity.class);
             PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
@@ -248,7 +249,7 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
         if(smsServer != null && smsServer.isAlive())
         {
             if(serverStatesListener != null)
-                serverStatesListener.onServerAlreadyRunning(smsServer.getHostname(), smsServer.getListeningPort(),smsServer.isSecure());
+                serverStatesListener.onServerAlreadyRunning(smsServer.getServerInfo());
         }
     }
 
@@ -303,8 +304,8 @@ public class SMSService extends Service implements MessageReceiver.MessageListen
 
     public interface ServerStatesListener {
 
-        void onServerStarted(String IP, int port, boolean isSecure);
-        void onServerAlreadyRunning(String IP, int port, boolean isSecure);
+        void onServerStarted(ServerInfo serverInfo);
+        void onServerAlreadyRunning(ServerInfo serverInfo);
         void onServerStopped();
         void onServerError(Throwable throwable);
     }
